@@ -17,8 +17,14 @@ class AudioVideo:
         :param videofile: Full path to the mp4 file 
         :return: full path to the extracted audio file
         """
+        print(f"Extracting auio file from video {videofile}")
         # first of all change the extension to the video file to create output path
         audio_path = videofile.replace(".mp4", ".wav")
+        
+        #if audio file exists, delete, maybe it is an old version
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+
         command = f'ffmpeg -i {videofile} -vn -acodec pcm_s16le -ar 44100 -ac 2 {audio_path}'
         with open(os.devnull, 'w') as devnull:
             subprocess.call(command, shell=True, stdout=devnull, stderr=devnull)
@@ -40,6 +46,7 @@ class AudioVideo:
         :param audiofile: Full path to the wav file 
         :return: transcripted text with start and end time
         """
+        print(f"Extracting transcript from audio file {audiofile}")
         model = whisper.load_model("base")
 
         transcription_options = {
@@ -53,6 +60,11 @@ class AudioVideo:
             start = segment['start']
             end = segment['end']
             text = segment['text']
-            transcription_string += f"{start:.0f}\t{end:.0f}\t{text}\n"
 
+            # Now I need to convert the start value, expressed in seconds, to 00:00 format
+            # I can use the divmod function to get the minutes and seconds
+            minutes, seconds = divmod(start, 60)
+            transcription_string += f"{str(int(minutes)).zfill(2)}:{str(int(seconds)).zfill(2)}\t{text}\n"
+
+        print(f"extracted {len(result['segments'])} audio segments")
         return transcription_string
