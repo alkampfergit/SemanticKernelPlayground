@@ -47,7 +47,7 @@ class AudioVideo:
         :return: transcripted text with start and end time
         """
         print(f"Extracting transcript from audio file {audiofile}")
-        model = whisper.load_model("base")
+        model = whisper.load_model("medium.en")
 
         transcription_options = {
             "task": "transcribe",
