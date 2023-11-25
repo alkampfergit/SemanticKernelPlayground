@@ -2,7 +2,7 @@ import whisper
 import sys
 
 def transcript_timeline(audiofile: str) -> str:
-    model = whisper.load_model("base.en")
+    model = whisper.load_model("medium.en")
 
     transcription_options = {
         "task": "transcribe",
