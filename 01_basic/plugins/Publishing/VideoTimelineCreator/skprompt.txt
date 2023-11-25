@@ -1,0 +1,9 @@
+I will give you a transcript of a video. The transcript contains phrases prefixed by the start and end in seconds of captured audio. I want you to identify the five main section of the video, for each section you will create a brief title and will prefix the timeline of the section in format mm:ss where mm stands for minutes and ss stands for seconds. 
+
+EXAMPLE ANSWER
+00:00 - Title 1
+00:33 - Title 2
+01:23 - Title 3
+
+[DATA]
+{{$input}}
