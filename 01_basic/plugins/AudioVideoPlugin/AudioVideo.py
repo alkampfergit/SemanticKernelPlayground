@@ -2,6 +2,7 @@ import subprocess
 from semantic_kernel.skill_definition import sk_function
 import os
 import whisper
+import torch  
 
 class AudioVideo:
 
@@ -47,8 +48,11 @@ class AudioVideo:
         :return: transcripted text with start and end time
         """
         print(f"Extracting transcript from audio file {audiofile}")
-        model = whisper.load_model("medium.en")
+        # model = whisper.load_model("medium.en")
 
+        devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
+        print (f"Using device: {devices} to run whisper")
+        model = whisper.load_model("medium.en" , device =devices)
         transcription_options = {
             "task": "transcribe",
             "prompt": "You will transcribe the video to generate timeline for youtube"  # Add your prompt here
