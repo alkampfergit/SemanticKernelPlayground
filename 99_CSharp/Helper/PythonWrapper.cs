@@ -1,4 +1,4 @@
-﻿namespace _02_basic_csharp;
+﻿namespace SemanticKernelExperiments;
 using System.Diagnostics;
 using System.IO;
 

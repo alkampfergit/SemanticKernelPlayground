@@ -57,7 +57,9 @@ class AudioVideo:
             "task": "transcribe",
             "prompt": "You will transcribe the video to generate timeline for youtube"  # Add your prompt here
         }
-        result = model.transcribe(audiofile, **transcription_options)
+        result = model.transcribe(
+            audiofile, 
+            **transcription_options)
 
         transcription_string = ""
         for segment in result['segments']:

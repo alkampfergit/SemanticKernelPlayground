@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>02_basic_csharp</RootNamespace>
+    <RootNamespace>SemanticKernelExperiments</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

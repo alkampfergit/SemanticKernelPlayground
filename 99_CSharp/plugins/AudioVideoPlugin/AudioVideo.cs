@@ -3,10 +3,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using _02_basic_csharp;
 using Microsoft.SemanticKernel;
 
-namespace _02_basic_csharp.AudioVideoPlugin;
+namespace SemanticKernelExperiments.AudioVideoPlugin;
 public class AudioVideoPlugin
 {
     [SKFunction, Description("extract audio in wav format from an mp4 file")]
