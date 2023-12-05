@@ -55,7 +55,8 @@ class AudioVideo:
         model = whisper.load_model("medium.en" , device =devices)
         transcription_options = {
             "task": "transcribe",
-            "prompt": "You will transcribe the video to generate timeline for youtube"  # Add your prompt here
+            "prompt": "You will transcribe the video to generate timeline for youtube",  # Add your prompt here
+            "verbose": False,
         }
         result = model.transcribe(
             audiofile, 
