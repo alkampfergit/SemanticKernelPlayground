@@ -6,4 +6,4 @@ EXAMPLE ANSWER
 01:23 - Title 3
 
 [DATA]
-{{$input}}
+{{$transcript}}

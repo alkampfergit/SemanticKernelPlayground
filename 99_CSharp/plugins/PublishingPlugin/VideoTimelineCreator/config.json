@@ -12,8 +12,8 @@
     "input": {
       "parameters": [
         {
-          "name": "input",
-          "description": "A transcript of a video with time markers",
+          "name": "transcript",
+          "description": "Transcript of an audio file with time markers",
           "defaultValue": ""
         }
       ]

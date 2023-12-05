@@ -2,9 +2,10 @@ import whisper
 import sys
 
 def transcript_timeline(audiofile: str) -> str:
-    model = whisper.load_model("medium.en")
+    model = whisper.load_model("tiny.en")
 
     transcription_options = {
+        "verbose" : False,
         "task": "transcribe",
         "prompt": "You will transcribe the video to generate timeline for youtube"  # Add your prompt here
     }

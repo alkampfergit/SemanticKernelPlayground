@@ -8,7 +8,7 @@ using Microsoft.SemanticKernel;
 namespace SemanticKernelExperiments.AudioVideoPlugin;
 public class AudioVideoPlugin
 {
-    [SKFunction, Description("extract audio in wav format from an mp4 file")]
+    [KernelFunction, Description("extract audio in wav format from an mp4 file")]
     public string ExtractAudio([Description("Full path to the mp4 file")] string videofile)
     {
         Console.WriteLine($"Extracting audio file from video {videofile}");
@@ -39,12 +39,12 @@ public class AudioVideoPlugin
         return audioPath;
     }
 
-    [SKFunction, Description("Transcript audio from a wav file to a timeline")]   
-    public string TranscriptTimeline([Description("Full path to the wav file")] string videofile) 
+    [KernelFunction, Description("Transcript audio from a wav file to a timeline extracting a transcript")]   
+    public string TranscriptTimeline([Description("Full path to the wav file")] string audioFile) 
     {
         var python = new PythonWrapper("/Users/gianmariaricci/develop/github/SemanticKernelPlayground/skernel/bin/python3");
         var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
-        var result = python.Execute(script, "/Users/gianmariaricci/develop/montaggi/UpdatingSSH.wav");
+        var result = python.Execute(script, audioFile);
         return result;
     }
 }
