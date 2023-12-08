@@ -178,10 +178,10 @@ class Program
         var kernelBuilder = new KernelBuilder();
         kernelBuilder.Services.AddLogging(l => l.AddConsole().SetMinimumLevel(LogLevel.Trace));
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
-            "GPT42",
+            "GPT4t",
             "gpt-4", //Model Name,
-             "https://alkopenai2.openai.azure.com/",
-             Environment.GetEnvironmentVariable("AI_KEY"));
+            Dotenv.Get("OPENAI_API_BASE"),
+            Dotenv.Get("OPENAI_API_KEY"));
         return kernelBuilder;
     }
 
