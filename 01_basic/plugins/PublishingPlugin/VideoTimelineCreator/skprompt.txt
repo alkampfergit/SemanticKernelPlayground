@@ -1,0 +1,10 @@
+I will give you a transcript of a video. The transcript contains phrases prefixed by the timestamp where the phrase starts. I want you to identify between three and ten main sections of the video. You must never identify more than ten sections.
+For each section you will create a brief title prefixed with the start timestamp of the section obtained analyzing all the text belonging to that section.
+
+EXAMPLE ANSWER - Maximum of ten sections
+00:00 - Title of section 1
+00:33 - Title of section 2
+01:23 - Title of section 3
+
+[DATA]
+{{$input}}
