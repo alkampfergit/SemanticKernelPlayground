@@ -10,6 +10,12 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\skprompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="python/transcript_timeline.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
