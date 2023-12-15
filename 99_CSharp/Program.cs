@@ -156,23 +156,32 @@ public static class Program
 
         var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
+        //ChatHistory chatMessages = new();
+        //chatMessages.AddUserMessage("I want to extract audio from video file C:\\temp\\ssh.mp4");
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      chatMessages,
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        //chatMessages = new();
+        //chatMessages.AddUserMessage("I want to extract full timeline from video file C:\\temp\\ssh.mp4");
+        //result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      chatMessages,
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
         ChatHistory chatMessages = new();
-        chatMessages.AddUserMessage("I want to extract audio from video file C:\\temp\\ssh.mp4");
+        chatMessages.AddUserMessage("I want to extract summarized timeline from video file C:\\temp\\ssh.mp4");
         var result = await chatCompletionService.GetChatMessageContentsAsync(
               chatMessages,
               executionSettings: openAIPromptExecutionSettings,
               kernel: kernel);
 
-        Console.WriteLine("Result: {0}", result);
-
-        chatMessages = new();
-        chatMessages.AddUserMessage("I want to extract summarized timeline from video file C:\\temp\\ssh.mp4");
-        result = await chatCompletionService.GetChatMessageContentsAsync(
-              chatMessages,
-              executionSettings: openAIPromptExecutionSettings,
-              kernel: kernel);
-
-        Console.WriteLine("Result: {0}", result.Last().Content);
+        Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
     }
 
     private static IKernelBuilder CreateBasicKernelBuilder()

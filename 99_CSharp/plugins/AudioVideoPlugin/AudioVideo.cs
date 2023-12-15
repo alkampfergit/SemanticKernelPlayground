@@ -39,6 +39,7 @@ public class AudioVideoPlugin
     }
 
     [KernelFunction, Description("Transcript audio from a wav file to a timeline extracting a transcript")]
+    [return: Description("Transcript of an audio file with time markers")]
     public string TranscriptTimeline([Description("Full path to the wav file")] string audioFile)
     {
         var python = new PythonWrapper(@"C:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
