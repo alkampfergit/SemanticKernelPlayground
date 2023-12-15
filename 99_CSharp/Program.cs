@@ -1,10 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletionWithData;
-using Microsoft.SemanticKernel.PromptTemplate.Handlebars;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using System;
 using System.IO;
 using System.Linq;
@@ -16,12 +15,12 @@ public static class Program
 {
     static async Task Main(string[] args)
     {
-        // string result = Ex01_CallPluginDirectly();
+        //string result = Ex01_CallPluginDirectly();
 
-        // await Ex02_InvokeLLMDirectly();
-        // await Ex02_b_InvokeLLMDirectly();
+        //await Ex02_InvokeLLMDirectly();
+        //await Ex02_b_InvokeLLMDirectly();
 
-        //await Ex03_DirectSequentialCallToExtractVideo();
+        // await Ex03_DirectSequentialCallToExtractVideo();
         // await Ex03_b_DirectSequentialCallToExtractVideo();
 
         await Ex04_Load_function_in_builder();
@@ -74,7 +73,7 @@ public static class Program
     /// <returns></returns>
     private static async Task Ex03_DirectSequentialCallToExtractVideo()
     {
-        KernelBuilder kernelBuilder = CreateBasicKernelBuilder();
+        var kernelBuilder = CreateBasicKernelBuilder();
 
         var kernel = kernelBuilder.Build();
 
@@ -111,7 +110,7 @@ public static class Program
     private static async Task Ex03_b_DirectSequentialCallToExtractVideo()
     {
         var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins", "PublishingPlugin");
-        KernelBuilder kernelBuilder = CreateBasicKernelBuilder();
+        var kernelBuilder = CreateBasicKernelBuilder();
         kernelBuilder
            .Plugins
                .AddFromType<AudioVideoPlugin.AudioVideoPlugin>("AudioVideoPlugin")
@@ -136,7 +135,7 @@ public static class Program
     private static async Task Ex04_Load_function_in_builder()
     {
         var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins", "PublishingPlugin");
-        KernelBuilder kernelBuilder = CreateBasicKernelBuilder();
+        var kernelBuilder = CreateBasicKernelBuilder();
         kernelBuilder
             .Plugins
                 .AddFromType<AudioVideoPlugin.AudioVideoPlugin>("AudioVideoPlugin")
@@ -145,7 +144,7 @@ public static class Program
 
         OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
         {
-            FunctionCallBehavior = FunctionCallBehavior.AutoInvokeKernelFunctions
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
         };
 
         var chatPrompt = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Prompts", "chat.yaml");
@@ -155,30 +154,30 @@ public static class Program
             promptTemplateFactory: new HandlebarsPromptTemplateFactory()
         );
 
+        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+
         ChatHistory chatMessages = new();
         chatMessages.AddUserMessage("I want to extract audio from video file C:\\temp\\ssh.mp4");
-        var result = await kernel.InvokeAsync<string>(
-            prompt,
-            arguments: new(openAIPromptExecutionSettings) {
-                { "messages", chatMessages }
-            });
+        var result = await chatCompletionService.GetChatMessageContentsAsync(
+              chatMessages,
+              executionSettings: openAIPromptExecutionSettings,
+              kernel: kernel);
 
         Console.WriteLine("Result: {0}", result);
 
         chatMessages = new();
         chatMessages.AddUserMessage("I want to extract summarized timeline from video file C:\\temp\\ssh.mp4");
-        var complexResult = await kernel.InvokeAsync(
-            prompt,
-            arguments: new(openAIPromptExecutionSettings) {
-                { "messages", chatMessages }
-            });
+        result = await chatCompletionService.GetChatMessageContentsAsync(
+              chatMessages,
+              executionSettings: openAIPromptExecutionSettings,
+              kernel: kernel);
 
-        Console.WriteLine("Result: {0}", complexResult.GetValue<string>());
+        Console.WriteLine("Result: {0}", result.Last().Content);
     }
 
-    private static KernelBuilder CreateBasicKernelBuilder()
+    private static IKernelBuilder CreateBasicKernelBuilder()
     {
-        var kernelBuilder = new KernelBuilder();
+        var kernelBuilder = Kernel.CreateBuilder();
         kernelBuilder.Services.AddLogging(l => l
             .SetMinimumLevel(LogLevel.Trace)
             .AddConsole()
@@ -187,7 +186,6 @@ public static class Program
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
             "GPT4t",
-            "gpt-4", //Model Name,
             Dotenv.Get("OPENAI_API_BASE"),
             Dotenv.Get("OPENAI_API_KEY"));
 
@@ -203,11 +201,11 @@ public static class Program
     private static string Ex01_CallPluginDirectly()
     {
         var av = new AudioVideoPlugin.AudioVideoPlugin();
-        av.ExtractAudio("/Users/gianmariaricci/develop/montaggi/UpdatingSSH.mp4");
+        av.ExtractAudio(@"C:\temp\ssh.mp4");
 
-        var python = new PythonWrapper("/Users/gianmariaricci/develop/github/SemanticKernelPlayground/skernel/bin/python3");
+        var python = new PythonWrapper(@"C:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
         var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
-        var result = python.Execute(script, "/Users/gianmariaricci/develop/montaggi/UpdatingSSH.wav");
+        var result = python.Execute(script, @"C:\temp\ssh.wav");
         Console.WriteLine(result);
         return result;
     }
