@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Http.Logging;
+﻿using Azure;
+using Microsoft.Extensions.Http.Logging;
 using Microsoft.Extensions.Logging;
+using SemanticKernelExperiments.Helper.LogHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -18,9 +19,12 @@ namespace SemanticKernelExperiments.Helper
         private readonly AccumulatorLogger _logger;
         private RequestBodyLogger _httpRequestBodyLogger;
 
+        private static DumpLoggingProvider Instance;
+
         public DumpLoggingProvider()
         {
             _logger = new AccumulatorLogger();
+            Instance = this;
         }
 
         public IHttpClientAsyncLogger CreateHttpRequestBodyLogger(ILogger logger) =>
@@ -35,18 +39,49 @@ namespace SemanticKernelExperiments.Helper
         {
         }
 
+        internal IEnumerable<LLMCall> GetLLMCalls()
+        {
+            return _logger.GetLLMCalls();
+        }
+
         class AccumulatorLogger : ILogger
         {
             private readonly List<string> _logs;
+            private readonly List<LLMCall> _llmCalls;
 
             public AccumulatorLogger()
             {
                 _logs = new List<string>();
+                _llmCalls = new List<LLMCall>();
+            }
+
+            public IEnumerable<LLMCall> GetLLMCalls() => _llmCalls; 
+
+            public void AddLLMCall(LLMCall lLMCall)
+            {
+                _llmCalls.Add(lLMCall);
+            }
+
+            internal LLMCall CompleteLLMCall(string correlationId, string function, string arguments, string response)
+            {
+                for (int i = _llmCalls.Count -1; i >= 0; i--)
+                {
+                    var llmCall = _llmCalls[i];
+                    if (llmCall.CorrelationKey == correlationId) 
+                    {
+                        llmCall.Response = response;
+                        llmCall.ResponseFunctionCall = function;
+                        llmCall.ResponseFunctionCallParameters = arguments;
+                        return llmCall;
+                    }
+                }
+
+                return null;
             }
 
             public IDisposable BeginScope<TState>(TState state) where TState : notnull
             {
-                return new LogScope();
+                return new LogScope(state);
             }
 
             public bool IsEnabled(LogLevel logLevel) => true;
@@ -82,6 +117,13 @@ namespace SemanticKernelExperiments.Helper
 
         private class LogScope : IDisposable
         {
+            private object _state;
+
+            public LogScope(object state)
+            {
+                _state = state;
+            }
+
             public void Dispose()
             {
             }
@@ -92,46 +134,68 @@ namespace SemanticKernelExperiments.Helper
             public async ValueTask<object?> LogRequestStartAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
             {
                 var requestContent = await request.Content!.ReadAsStringAsync(cancellationToken);
-
-                // I need to pase the request content as json object to extract some informations.
-                var jsonObject = JsonDocument.Parse(requestContent).RootElement;
-                var messages = jsonObject.GetProperty("messages");
-
                 StringBuilder sb = new();
-                sb.AppendLine($"Call LLM: {request.RequestUri}");
-                foreach (var message in messages.EnumerateArray())
+
+                if (request.RequestUri.Host.Contains("openai"))
                 {
-                    var content = message.GetProperty("content").GetString();
-                    sb.AppendLine($"{message.GetProperty("role").GetString()}: {content}");
-                }
+                    // I need to pase the request content as json object to extract some informations.
+                    var jsonObject = JsonDocument.Parse(requestContent).RootElement;
+                    var messages = jsonObject.GetProperty("messages");
 
-                JsonElement tools = jsonObject.GetProperty("tools");
+                    sb.AppendLine($"Call LLM: {request.RequestUri}");
 
-                sb.AppendLine("Functions:");
-                foreach (JsonElement tool in tools.EnumerateArray())
-                {
-                    // Extracting function object
-                    JsonElement function = tool.GetProperty("function");
-
-                    // Extracting function name and description
-                    string functionName = function.GetProperty("name").GetString();
-                    string functionDescription = function.GetProperty("description").GetString();
-
-                    sb.AppendLine($"Function Name: {functionName}");
-                    sb.AppendLine($"Description: {functionDescription}");
-
-                    // Extracting parameters
-                    JsonElement parameters = function.GetProperty("parameters");
-                    foreach (JsonProperty parameter in parameters.EnumerateObject())
+                    foreach (var message in messages.EnumerateArray())
                     {
-                        sb.AppendLine($"Parameter name {parameter.Name} Value; {parameter.Value}");
+                        var content = message.GetProperty("content").GetString();
+                        sb.AppendLine($"{message.GetProperty("role").GetString()}: {content}");
                     }
-                    sb.AppendLine();
-                }
 
-                foreach (var header in request.Headers)
+                    if (jsonObject.TryGetProperty("tools", out var tools))
+                    {
+
+                        sb.AppendLine("Functions:");
+                        foreach (JsonElement tool in tools.EnumerateArray())
+                        {
+                            // Extracting function object
+                            JsonElement function = tool.GetProperty("function");
+
+                            // Extracting function name and description
+                            string functionName = function.GetProperty("name").GetString();
+                            string functionDescription = function.GetProperty("description").GetString();
+
+                            sb.AppendLine($"Function Name: {functionName}");
+                            sb.AppendLine($"Description: {functionDescription}");
+
+                            // Extracting parameters
+                            JsonElement parameters = function.GetProperty("parameters");
+                            foreach (JsonProperty parameter in parameters.EnumerateObject())
+                            {
+                                sb.AppendLine($"Parameter name {parameter.Name} Value; {parameter.Value}");
+                            }
+                            sb.AppendLine();
+                        }
+                    }
+                    foreach (var header in request.Headers)
+                    {
+                        if (!header.Key.Contains("key", StringComparison.OrdinalIgnoreCase))
+                        {
+                            sb.AppendLine($"{header.Key}: {header.Value.First()}");
+                        }
+                    }
+
+                    LLMCall lLMCall = new LLMCall()
+                    {
+                        CorrelationKey = request.Headers.GetValues("x-ms-client-request-id").First(),
+                        Prompt = jsonObject.GetProperty("messages").ToString(),
+                        PromptFunctions = tools.ToString()
+                    };
+                    DumpLoggingProvider.Instance._logger.AddLLMCall(lLMCall);
+                }
+                else
                 {
-                    sb.AppendLine($"{header.Key}: {header.Value}");
+                    sb.AppendLine($"Call HTTP: {request.RequestUri}");
+                    sb.AppendLine("CONTENT:");
+                    sb.AppendLine(requestContent);
                 }
 
                 logger.LogTrace(sb.ToString());
@@ -156,10 +220,54 @@ namespace SemanticKernelExperiments.Helper
             public ValueTask LogRequestStopAsync(object? context, HttpRequestMessage request, HttpResponseMessage response, TimeSpan elapsed, CancellationToken cancellationToken = default)
             {
                 var responseContent = response.Content.ReadAsStringAsync().Result;
-                logger.LogTrace("Response: {Response}", response);
-                logger.LogTrace("Response content: {Content}", responseContent);
+
+                var sb = new StringBuilder();
+                var functions = GetFunctionInformation(responseContent);
+                if (functions.Function != null)
+                {
+                    sb.AppendLine($"Call function {functions.Function} with arguments {functions.Arguments}");
+                }
+
+                sb.AppendLine($"Response: {response}");
+                sb.AppendLine($"Response content: {responseContent}");
+
+                if (request.RequestUri.Host.Contains("openai"))
+                {
+                    var correlationId = response.Headers.GetValues("x-ms-client-request-id").First();
+                    var llmCall = DumpLoggingProvider.Instance._logger.CompleteLLMCall(correlationId, functions.Function, functions.Arguments, responseContent);
+                    if (llmCall != null) 
+                    {
+                        logger.LogTrace(llmCall.Dump());
+                        return ValueTask.CompletedTask;
+                    }
+                }
+
+                logger.LogTrace(sb.ToString());
                 return ValueTask.CompletedTask;
             }
+
+            private static (string Function, string Arguments) GetFunctionInformation(string responseContent)
+            {
+                try
+                {
+                    var root = JsonDocument.Parse(responseContent);
+                    var functionInfo = root.RootElement
+                        .GetProperty("choices")[0]
+                        .GetProperty("message")
+                        .GetProperty("tool_calls")[0]
+                        .GetProperty("function");
+
+                    string functionName = functionInfo.GetProperty("name").GetString();
+                    string arguments = functionInfo.GetProperty("arguments").GetString();
+
+                    return (functionName, arguments);
+                }
+                catch (Exception)
+                {
+                    return (null, null);
+                }
+            }
+
             public void LogRequestFailed(object? context, HttpRequestMessage request, HttpResponseMessage? response, Exception exception, TimeSpan elapsed) { }
             public ValueTask LogRequestFailedAsync(object? context, HttpRequestMessage request, HttpResponseMessage? response, Exception exception, TimeSpan elapsed, CancellationToken cancellationToken = default) => default;
         }

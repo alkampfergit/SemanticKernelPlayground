@@ -191,6 +191,31 @@ public static class Program
               kernel: kernel);
 
         Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        Console.WriteLine("\n\nProcess followed to answer the question:\n");
+
+        DumpTextSection("RAW FUNCTION CALLS");
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine($"Function {llmCall.ResponseFunctionCall} with arguments {llmCall.ResponseFunctionCallParameters}");
+        }
+
+        DumpTextSection("FULL INFORMATION DUMP");
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine(llmCall.Dump());
+        }
+    }
+
+    private static void DumpTextSection(string text)
+    {
+        int totalWidth = 80;
+        int padding = (totalWidth - text.Length) / 2;
+        string centeredText = text.PadLeft(padding + text.Length).PadRight(totalWidth);
+        Console.WriteLine(new string('-', totalWidth));
+        Console.WriteLine(centeredText);
+        Console.WriteLine(new string('-', totalWidth));
     }
 
     private static IKernelBuilder CreateBasicKernelBuilder()
