@@ -4,15 +4,24 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+using SemanticKernelExperiments.Helper;
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
+using System.Net;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 
 namespace SemanticKernelExperiments;
 
 public static class Program
 {
+    private static DumpLoggingProvider _loggingProvider = new DumpLoggingProvider();
     static async Task Main(string[] args)
     {
         //string result = Ex01_CallPluginDirectly();
@@ -191,7 +200,11 @@ public static class Program
             .SetMinimumLevel(LogLevel.Trace)
             .AddConsole()
             .AddDebug()
+            .AddProvider(_loggingProvider)
         );
+
+        kernelBuilder.Services.ConfigureHttpClientDefaults(c => c
+            .AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>())));
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
             "GPT4t",
