@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "type": "completion",
+  "description": "Given a video transcript it can summarize and generate a timeline",
+  "completion": {
+    "max_tokens": 1000,
+    "temperature": 0,
+    "top_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0
+  },
+  "input_variables": [
+      {
+        "name": "transcript",
+        "description": "Transcript of an audio file with time markers",
+        "defaultValue": "",
+        "isRequired": true
+      }
+    ]
+}
