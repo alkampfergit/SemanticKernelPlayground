@@ -1,0 +1,12 @@
+I will give you a transcript of a video. You need to summarize the video based on transcript to 
+create a description that can be used in YouTube. I want no more than 500 words. If possible please 
+generate three different description, changing the style of writing.
+
+First one should be more professional
+Second one should be more casual
+Third one aim to maximize engagement.
+
+TRANSCRIPT
+"""
+{{$input}}
+"""

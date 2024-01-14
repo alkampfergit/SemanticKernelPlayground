@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>SemanticMemory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Helper\MongoDbKernelMemoryBaseStorage.cs" />
+    <Compile Remove="Helper\MongoDbKernelMemoryConfiguration.cs" />
+    <Compile Remove="Helper\MongoDbKernelMemoryStorage.cs" />
+    <Compile Remove="Helper\MongoDbVectorMemory.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\skprompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+      <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.27.240205.2" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.3.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.3.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.3.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.3.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.3.0" />
+      <PackageReference Include="MongoDB.Driver" Version="2.23.1" />
+      <PackageReference Include="MongoDB.Driver.GridFS" Version="2.23.1" />
+    </ItemGroup>
+
+    <!--<ItemGroup>
+      <Reference Include="Alkampfer.KernelMemory.AtlasMongoDb">
+        <HintPath>..\..\kernel-memory\extensions\AtlasMongoDb\AtlasMongoDb\bin\Debug\net6.0\Alkampfer.KernelMemory.AtlasMongoDb.dll</HintPath>
+      </Reference>
+    </ItemGroup>-->
+
+  </Project>
