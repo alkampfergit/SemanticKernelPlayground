@@ -2,7 +2,7 @@ import whisper
 import sys
 
 def transcript_timeline(audiofile: str) -> str:
-    model = whisper.load_model("tiny.en")
+    model = whisper.load_model("large-v3")
 
     transcription_options = {
         "verbose" : False,

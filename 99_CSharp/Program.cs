@@ -3,19 +3,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Planning.Handlebars;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
-using System.Net;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http.Resilience;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 
 namespace SemanticKernelExperiments;
 
@@ -32,7 +26,8 @@ public static class Program
         // await Ex03_DirectSequentialCallToExtractVideo();
         // await Ex03_b_DirectSequentialCallToExtractVideo();
 
-        await Ex04_Load_function_in_builder();
+        //await Ex04_Load_function_in_builder();
+        await Ex05_basic_planner();
         Console.ReadLine();
     }
 
@@ -208,6 +203,45 @@ public static class Program
         }
     }
 
+    private static async Task Ex05_basic_planner()
+    {
+        var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins", "PublishingPlugin");
+        var kernelBuilder = CreateBasicKernelBuilder();
+        kernelBuilder
+            .Plugins
+                .AddFromType<AudioVideoPlugin.AudioVideoPlugin>("AudioVideoPlugin")
+                .AddFromPromptDirectory(pluginsDirectory);
+        var kernel = kernelBuilder.Build();
+
+#pragma warning disable SKEXP0060 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var planner = new HandlebarsPlanner();
+
+        Console.WriteLine("\n\nProcess followed to answer the question:\n");
+        var question = "I want to extract summarized timeline from video file C:\\temp\\ssh.mp4";
+
+        var plan = await planner.CreatePlanAsync(kernel, question);
+
+        var textPlan = plan.ToString();
+        Console.WriteLine(textPlan);
+
+        //now we can invoke the plan
+        var result = await plan.InvokeAsync(kernel);
+
+#pragma warning restore SKEXP0060 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        DumpTextSection("RAW FUNCTION CALLS");
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine($"Function {llmCall.ResponseFunctionCall} with arguments {llmCall.ResponseFunctionCallParameters}");
+        }
+
+        DumpTextSection("FULL INFORMATION DUMP");
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine(llmCall.Dump());
+        }
+    }
+
     private static void DumpTextSection(string text)
     {
         int totalWidth = 80;
@@ -232,7 +266,7 @@ public static class Program
             .AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>())));
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
-            "GPT35_2",//"GPT42",
+            "GPT42", //"GPT35_2",//"GPT42",
             Dotenv.Get("OPENAI_API_BASE"),
             Dotenv.Get("OPENAI_API_KEY"));
 
