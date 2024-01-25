@@ -216,20 +216,26 @@ public static class Program
 #pragma warning disable SKEXP0060 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var planner = new HandlebarsPlanner();
 
-        Console.WriteLine("\n\nProcess followed to answer the question:\n");
         var question = "I want to extract summarized timeline from video file C:\\temp\\ssh.mp4";
-
         var plan = await planner.CreatePlanAsync(kernel, question);
-
         var textPlan = plan.ToString();
         Console.WriteLine(textPlan);
 
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        var callToExecuteThePlan = llmCalls.Count();
+        Console.WriteLine("Number of function calls to generate the plan: {0}", callToExecuteThePlan);
+
+        var planCall = llmCalls.Single();
         //now we can invoke the plan
         var result = await plan.InvokeAsync(kernel);
 
+        llmCalls = _loggingProvider.GetLLMCalls();
+        Console.WriteLine("Num of function calls to execute the plan: {0}", llmCalls.Count() - callToExecuteThePlan);
+
+        Console.WriteLine("Result: {0}", result);
+
 #pragma warning restore SKEXP0060 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         DumpTextSection("RAW FUNCTION CALLS");
-        var llmCalls = _loggingProvider.GetLLMCalls();
         foreach (var llmCall in llmCalls)
         {
             Console.WriteLine($"Function {llmCall.ResponseFunctionCall} with arguments {llmCall.ResponseFunctionCallParameters}");

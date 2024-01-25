@@ -1,4 +1,6 @@
-﻿namespace SemanticKernelExperiments.Helper.LogHelpers
+﻿using System;
+
+namespace SemanticKernelExperiments.Helper.LogHelpers
 {
     public class LLMCall
     {
@@ -13,6 +15,12 @@
         public string ResponseFunctionCall { get; set; }
 
         public string ResponseFunctionCallParameters { get; set; }
+
+        public DateTime CallStart { get; set; }
+
+        public DateTime CallEnd { get; set; }
+
+        public TimeSpan CallDuration => CallEnd - CallStart;    
 
         public string Dump()
         {

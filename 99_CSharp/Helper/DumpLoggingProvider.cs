@@ -72,6 +72,7 @@ namespace SemanticKernelExperiments.Helper
                         llmCall.Response = response;
                         llmCall.ResponseFunctionCall = function;
                         llmCall.ResponseFunctionCallParameters = arguments;
+                        llmCall.CallEnd = DateTime.UtcNow;
                         return llmCall;
                     }
                 }
@@ -187,7 +188,8 @@ namespace SemanticKernelExperiments.Helper
                     {
                         CorrelationKey = request.Headers.GetValues("x-ms-client-request-id").First(),
                         Prompt = jsonObject.GetProperty("messages").ToString(),
-                        PromptFunctions = tools.ToString()
+                        PromptFunctions = tools.ToString(),
+                        CallStart = DateTime.UtcNow
                     };
                     DumpLoggingProvider.Instance._logger.AddLLMCall(lLMCall);
                 }
