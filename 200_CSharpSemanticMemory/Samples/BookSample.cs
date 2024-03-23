@@ -48,7 +48,10 @@ namespace SemanticMemory.Samples
             // Create sample pipeline with 4 files
             Console.WriteLine("* Defining pipeline with 4 files...");
             var pipeline = orchestrator
-                .PrepareNewDocumentUpload(index: "booksample", documentId: "booksample", new TagCollection { { "example", "books" } })
+                .PrepareNewDocumentUpload(
+                    index: "booksample", 
+                    documentId: "booksample", 
+                    new TagCollection { { "example", "books" } })
                 .AddUploadFile("file1", Path.GetFileName(bookPdf), bookPdf)
                 .Then("extract")
                 .Then("clean")

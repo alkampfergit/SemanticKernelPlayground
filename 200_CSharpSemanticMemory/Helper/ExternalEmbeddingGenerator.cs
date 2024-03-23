@@ -30,32 +30,37 @@ namespace SemanticMemory.Helper
             _embeddingGeneratorConfig = embeddingGeneratorConfig;
 
             _log = DefaultLogger<ExternalEmbeddingGenerator>.Instance;
+
+            ScanModel();
         }
 
-        private async Task GetDenseVectorSizeAsync()
+        private void ScanModel()
         {
             var client = _httpClientFactory.CreateClient();
             //do a post request to the model to get the dense vector size
-            var body = new { modelName = _embeddingGeneratorConfig.ModelName };
+            var body = new DimensionInput(_embeddingGeneratorConfig.ModelName);
             var request = new HttpRequestMessage(HttpMethod.Post, $"{_embeddingGeneratorConfig.Address.TrimEnd('/')}/dimensions")
             {
                 Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
             };
-            var response = await client.GetAsync($"{_embeddingGeneratorConfig.Address.TrimEnd('/')}/dimensions");
+
+            var response = client.Send(request);
+
             //TODO: Proper error handling
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Failed to get dense vector size");
+                throw new Exception("Failed to get dimensions");
             }
-            var responseStream = await response.Content.ReadAsStreamAsync();
-            var embeddingInfo = await JsonSerializer.DeserializeAsync<EmbeddingInfo>(responseStream);
-            VectorSize = embeddingInfo.dimension;
+            var responseStream = response.Content.ReadAsStream();
+            var dimensionResult = JsonSerializer.Deserialize<DimensionResult>(responseStream);
+            this.VectorSize = dimensionResult.dimension;
+            this.MaxTokens = dimensionResult.maxSequenceLength;
         }
 
         /// <inheritdoc />
-        public int MaxTokens { get; private set; } = 4096;
+        public int MaxTokens { get; private set; } = 384;
 
-        public int VectorSize { get; private set; }
+        public int VectorSize { get; private set; } = 768;
 
         /// <inheritdoc />
         public int CountTokens(string text)
@@ -118,6 +123,8 @@ namespace SemanticMemory.Helper
         }
 
         public record SentenceInput(List<string> sentences, string modelName);
+        public record DimensionInput(string modelName);
+        public record DimensionResult(string model, int maxSequenceLength, int dimension);
         public record EmbeddingModel(List<double[]> embeddings, string model);
 
         private record EmbeddingInfo(string model, int dimension);

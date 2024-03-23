@@ -46,15 +46,26 @@ namespace SemanticMemory.Samples
 
             if (useLocal)
             {
-                kernelMemoryBuilder.WithCustomTextGenerator(new LmStudioTextGeneration(httpClientFactory, new Uri("http://localhost:1234")));
+                kernelMemoryBuilder.WithCustomTextGenerator(
+                    new LmStudioTextGeneration(
+                        httpClientFactory,
+                        new Uri("http://localhost:1234")));
             }
             else
             {
                 kernelMemoryBuilder.WithAzureOpenAITextGeneration(chatConfig);
             }
 
+            var embeddingConfig = new ExternalEmbeddingGeneratorConfig()
+            {
+                ModelName = "msmarco-distilbert-base-v4"
+            };
+
             kernelMemoryBuilder
-                .WithCustomEmbeddingGenerator(new ExternalEmbeddingGenerator(httpClientFactory, new ExternalEmbeddingGeneratorConfig()))
+                .WithCustomEmbeddingGenerator(
+                    new ExternalEmbeddingGenerator(
+                        httpClientFactory,
+                        embeddingConfig))
                 .WithSimpleFileStorage(new SimpleFileStorageConfig()
                 {
                     Directory = "c:\\temp\\kmsbert\\storage",
