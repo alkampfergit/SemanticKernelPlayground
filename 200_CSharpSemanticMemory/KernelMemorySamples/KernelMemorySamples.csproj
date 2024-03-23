@@ -3,8 +3,9 @@
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>SemanticMemory</RootNamespace>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,18 +28,18 @@
   </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.1.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
-      <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.27.240205.2" />
-      <PackageReference Include="Microsoft.SemanticKernel" Version="1.3.0" />
-      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.3.0" />
-      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.3.0" />
-      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.3.0" />
-      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.3.0" />
-      <PackageReference Include="MongoDB.Driver" Version="2.23.1" />
-      <PackageReference Include="MongoDB.Driver.GridFS" Version="2.23.1" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0-preview.2.24128.5" />
+      <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.2.24157.4" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0-preview.2.24128.5" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0-preview.2.24128.5" />
+      <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.35.240321.1" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.3" />
+      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.6.3" />
+      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.6.3" />
+      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.6.3" />
+      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.6.3" />
+      <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
+      <PackageReference Include="MongoDB.Driver.GridFS" Version="2.24.0" />
     </ItemGroup>
 
     <!--<ItemGroup>
