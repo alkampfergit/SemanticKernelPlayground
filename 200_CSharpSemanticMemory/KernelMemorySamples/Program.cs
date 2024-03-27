@@ -16,6 +16,7 @@ public static class Program
         services.AddSingleton<SBertSample>();
         services.AddSingleton<BasicSample>();
         services.AddSingleton<TextCleanerHandler>();
+        services.AddSingleton<CustomPipelineBase>();
         services.AddHttpClient();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -24,7 +25,12 @@ public static class Program
         ConsoleKeyInfo key;
         do
         {
-            Console.WriteLine("Which sample do you want to run? \n1 - book\n2 - Custom Pipeline\n3 - Bert\nx - exit");
+            Console.WriteLine(@"Which sample do you want to run?
+1 - book
+2 - Custom Pipeline
+3 - Bert
+4 - Basic custom Search pipeline
+x - exit");
             key = Console.ReadKey();
 
             switch (key.KeyChar)
@@ -39,6 +45,10 @@ public static class Program
 
                 case '3':
                     await serviceProvider.GetRequiredService<SBertSample>().RunSample(@"S:\OneDrive\B19553_11.pdf");
+                    break;
+
+                case '4':
+                    await serviceProvider.GetRequiredService<CustomPipelineBase>().RunSample(@"S:\OneDrive\B19553_11.pdf");
                     break;
             }
 

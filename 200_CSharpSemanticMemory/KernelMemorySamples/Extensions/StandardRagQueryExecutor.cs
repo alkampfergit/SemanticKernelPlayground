@@ -24,9 +24,9 @@ namespace SemanticMemory.Extensions
 
         public StandardRagQueryExecutor(
             ITextGenerator textGenerator,
-            ILogger<StandardRagQueryExecutor>? log = null,
             SearchClientConfig? config = null,
-            IPromptProvider? promptProvider = null)
+            IPromptProvider? promptProvider = null,
+            ILogger<StandardRagQueryExecutor>? log = null)
         {
             this._config = config ?? new SearchClientConfig();
             this._config.Validate();
