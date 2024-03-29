@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Samples
 {
-    internal class BasicSample
+    internal class BasicSample : ISample
     {
         public async Task RunSample(string bookPdf)
         {

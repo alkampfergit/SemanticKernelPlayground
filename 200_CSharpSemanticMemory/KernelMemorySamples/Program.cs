@@ -1,7 +1,11 @@
+using DocumentFormat.OpenXml.Office.CustomUI;
 using Microsoft.Extensions.DependencyInjection;
 using SemanticMemory.Helper.Pipeline;
 using SemanticMemory.Samples;
+using Spectre.Console;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace LogIntercepting;
@@ -21,39 +25,36 @@ public static class Program
 
         var serviceProvider = services.BuildServiceProvider();
 
-        //now begin a loop that you can use to ask which sample to run
-        ConsoleKeyInfo key;
+        // Ask for the user's favorite fruits
+        var choices = new Dictionary<string, Type?>
+        {
+            ["Simple Book Indexing"] = typeof(BookSample),
+            ["Custom pipeline"] = typeof(TextCleanerHandler),
+            ["SBert in action"] = typeof(SBertSample),
+            ["Custom Search pipeline (Basic)"] = typeof(CustomPipelineBase),
+            ["Exit"] = null
+        };
+
+        Type? sampleType;
         do
         {
-            Console.WriteLine(@"Which sample do you want to run?
-1 - book
-2 - Custom Pipeline
-3 - Bert
-4 - Basic custom Search pipeline
-x - exit");
-            key = Console.ReadKey();
+            var sample = AnsiConsole.Prompt(
+              new SelectionPrompt<string>()
+                  .Title("Choose the option to run?")
+                  .PageSize(10)
+                  .MoreChoicesText("[grey](Move up and down to select the example)[/]")
+                  .AddChoices(choices.Keys.ToArray()));
 
-            switch (key.KeyChar)
+            var book = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                .Title("Select the [green]book[/] to index")
+                .AddChoices([@"c:\temp\advancedapisecurity.pdf", @"S:\OneDrive\B19553_11.pdf"]));
+
+            sampleType = choices[sample];
+            if (sampleType != null)
             {
-                case '1':
-                    await serviceProvider.GetRequiredService<BasicSample>().RunSample(@"c:\temp\advancedapisecurity.pdf");
-                    break;
-
-                case '2':
-                    await serviceProvider.GetRequiredService<BookSample>().RunSample(@"c:\temp\advancedapisecurity.pdf");
-                    break;
-
-                case '3':
-                    await serviceProvider.GetRequiredService<SBertSample>().RunSample(@"S:\OneDrive\B19553_11.pdf");
-                    break;
-
-                case '4':
-                    await serviceProvider.GetRequiredService<CustomPipelineBase>().RunSample(@"S:\OneDrive\B19553_11.pdf");
-                    break;
+                var sampleInstance = (ISample) serviceProvider.GetRequiredService(sampleType);  
+                await sampleInstance.RunSample(book);
             }
-
-            //clear the console output
-            Console.Clear();
-        } while (key.KeyChar != 'x');
+        } while (sampleType != null);
     }
 }

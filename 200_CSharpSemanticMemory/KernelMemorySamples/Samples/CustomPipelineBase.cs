@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FreeMindLabs.KernelMemory.Elasticsearch;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
 using Microsoft.KernelMemory.ContentStorage;
@@ -9,27 +10,27 @@ using Microsoft.KernelMemory.MemoryStorage.DevTools;
 using Microsoft.KernelMemory.Prompts;
 using SemanticMemory.Extensions;
 using SemanticMemory.Helper;
+using Spectre.Console;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace SemanticMemory.Samples
 {
-    internal class CustomPipelineBase
+    internal class CustomPipelineBase : ISample
     {
         public async Task RunSample(string bookPdf)
         {
             var services = new ServiceCollection();
-            var builder = CreateBasicKernelMemoryBuilder(services, useMongoDbAtlas: false);
+            var builder = CreateBasicKernelMemoryBuilder(services);
 
             var kernelMemory = builder.Build<MemoryServerless>();
             var serviceProvider = services.BuildServiceProvider();
             var docId = Path.GetFileName(bookPdf);
 
             //you do not need to index a document each time you start the software
-            Console.WriteLine("Do you want to index a document? (y/n)");
-            var answer = Console.ReadLine();
-            if (answer == "y")
+            var indexDocument = AnsiConsole.Confirm("Do you want to index a document? (y/n)", true);
+            if (indexDocument)
             {
                 await IndexDocument(kernelMemory, bookPdf, docId);
             }
@@ -57,7 +58,7 @@ namespace SemanticMemory.Samples
                     UserQuestion userQuestion = new UserQuestion(options, question);
                     await questionPipeline.ExecuteQuery(userQuestion);
 
-                    if (userQuestion.Answered) 
+                    if (userQuestion.Answered)
                     {
                         Console.WriteLine("Answer: " + userQuestion.Answer);
                     }
@@ -82,8 +83,7 @@ namespace SemanticMemory.Samples
         }
 
         private static IKernelMemoryBuilder CreateBasicKernelMemoryBuilder(
-            ServiceCollection services,
-            bool useMongoDbAtlas = false)
+            ServiceCollection services)
         {
             // we need a series of services to use Kernel Memory, the first one is
             // an embedding service that will be used to create dense vector for
@@ -113,36 +113,38 @@ namespace SemanticMemory.Samples
                 .WithAzureOpenAITextGeneration(chatConfig)
                 .WithAzureOpenAITextEmbeddingGeneration(embeddingConfig);
 
-            if (useMongoDbAtlas)
+            ElasticsearchConfig elasticsearchConfig = new ElasticsearchConfig()
             {
-                var mongoConnection = Dotenv.Get("MONGO_CONNECTION");
-                //var builder = new MongoUrlBuilder(mongoConnection);
-                //var client = new MongoClient(builder.ToMongoUrl());
-                //var db = client.GetDatabase("kernelMemory");
-                //IContentStorage mongoStorage = new MongoDbStorage(db);
-                //IMemoryDb mongoVectorMemory = new MongoDbVectorMemory(db);
+                Endpoint = "http://localhost:9800",
+                IndexPrefix= "km",
+                ReplicaCount = 1,
+                ShardCount = 1,
+            };
 
-                //var config = new MongoDbKernelMemoryConfiguration()
-                //    .WithConnection(mongoConnection)
-                //    .WithDatabaseName("TestKernelMemory")
-                //    .WithSingleCollectionForVectorSearch(true);
+            var storage = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                .Title("Select the storage to use")
+                .AddChoices([
+                    "elasticsearch", "FileSystem (debug)"
+            ]));
 
-                //kernelMemoryBuilder
-                //     .WithAtlasMemoryDb(config);
+            kernelMemoryBuilder
+               .WithSimpleFileStorage(new SimpleFileStorageConfig()
+               {
+                   Directory = "c:\\temp\\km\\storage",
+                   StorageType = FileSystemTypes.Disk
+               });
+
+            if (storage == "elasticsearch")
+            {
+                kernelMemoryBuilder.WithElasticsearch(elasticsearchConfig);
             }
             else
             {
-                kernelMemoryBuilder
-                   .WithSimpleFileStorage(new SimpleFileStorageConfig()
-                   {
-                       Directory = "c:\\temp\\km\\storage",
-                       StorageType = FileSystemTypes.Disk
-                   })
-                   .WithSimpleVectorDb(new SimpleVectorDbConfig()
-                   {
-                       Directory = "c:\\temp\\km\\vectorstorage",
-                       StorageType = FileSystemTypes.Disk
-                   });
+                kernelMemoryBuilder.WithSimpleVectorDb(new SimpleVectorDbConfig()
+                {
+                    Directory = "c:\\temp\\km\\vectorstorage",
+                    StorageType = FileSystemTypes.Disk
+                });
             }
 
             // kernelMemoryBuilder.Services.ConfigureHttpClientDefaults(c => c
