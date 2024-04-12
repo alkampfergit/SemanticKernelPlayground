@@ -170,7 +170,7 @@ namespace KernelMemorySamples.Tests
                     }
                 }
             });
-           
+
             Mock<IQueryHandler> citationMock = GenerateCitationsMock(citations);
             Mock<IQueryHandler> answerMock = GenerateQueryAnswerMock("answered");
 
@@ -181,7 +181,7 @@ namespace KernelMemorySamples.Tests
             await sut.ExecuteQuery(userQuestion);
 
             Assert.True(userQuestion.Answered);
-            
+
             //now we need to verify the citations,
             Assert.Equal(2, userQuestion.Citations.Count);
             var firstCitation1 = userQuestion.Citations.Single(c => c.Link == "lin1");

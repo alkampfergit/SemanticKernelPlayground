@@ -16,6 +16,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Files\cl100k_base.tiktoken" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Files\cl100k_base.tiktoken">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -42,6 +52,7 @@
       <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.6.3" />
       <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
       <PackageReference Include="MongoDB.Driver.GridFS" Version="2.24.0" />
+      <PackageReference Include="TiktokenSharp" Version="1.1.0" />
     </ItemGroup>
 
     <!--<ItemGroup>

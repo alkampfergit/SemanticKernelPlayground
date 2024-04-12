@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Samples
 {
-    public class BookSample : ISample
+    public class SimpleBookIndexing : ISample
     {
         public async Task RunSample(string bookPdf)
         {
