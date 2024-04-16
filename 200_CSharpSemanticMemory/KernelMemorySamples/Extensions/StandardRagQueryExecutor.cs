@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions
 {
-    public class StandardRagQueryExecutor : IQueryHandler
+    public class StandardRagQueryExecutor : BasicQueryHandler
     { 
-        public string Name => "StandardRagQueryExecutor";
+        public override string Name => "StandardRagQueryExecutor";
 
         private readonly string _answerPrompt;
         private readonly SearchClientConfig _config;
@@ -36,7 +36,7 @@ namespace SemanticMemory.Extensions
             this._answerPrompt = promptProvider.ReadPrompt(Constants.PromptNamesAnswerWithFacts);
         }
 
-        public async Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+        protected override async Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
         {
             if (userQuestion.Citations.Count == 0)
             {

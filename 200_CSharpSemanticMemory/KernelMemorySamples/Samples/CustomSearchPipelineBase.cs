@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Samples
 {
-    internal class CustomPipelineBase : ISample
+    internal class CustomSearchPipelineBase : ISample
     {
         public async Task RunSample(string bookPdf)
         {

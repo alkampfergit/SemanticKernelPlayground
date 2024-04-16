@@ -2,21 +2,18 @@
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Diagnostics;
 using Microsoft.KernelMemory.MemoryStorage;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions
 {
-    public class StandardVectorSearchQueryHandler : IQueryHandler
+    public class StandardVectorSearchQueryHandler : BasicQueryHandler
     {
         private readonly IMemoryDb _memoryDb;
         private readonly ILogger<StandardVectorSearchQueryHandler> _log;
 
-        public string Name => "StandardVectorSearchQueryHandler";
+        public override string Name => "StandardVectorSearchQueryHandler";
 
         public StandardVectorSearchQueryHandler(
             IMemoryDb memory,
@@ -32,7 +29,7 @@ namespace SemanticMemory.Extensions
         /// <param name="userQuestion"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+        protected override async Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
         {
             var list = new List<(MemoryRecord memory, double relevance)>();
             var citations = new List<Citation>();

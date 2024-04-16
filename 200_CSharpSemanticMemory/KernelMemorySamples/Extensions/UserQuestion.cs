@@ -85,4 +85,46 @@ public interface IQueryHandler
     string Name { get; }
 }
 
+public interface IAsyncQueryHandler : IQueryHandler
+{
+    /// <summary>
+    /// Same functions of HandleAsync but with streaming support, because it is capable of raising 
+    /// events while the answer is being generated.
+    /// </summary>
+    /// <param name="userQuestion"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
+}
+
+public abstract class BasicQueryHandler : IQueryHandler
+{
+    public abstract string Name { get; }
+
+    public Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken) 
+    {
+        return OnHandleAsync(userQuestion, cancellationToken);
+    }
+
+    protected abstract Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
+}
+
+public abstract class BasicAsyncQueryHandler : IAsyncQueryHandler
+{
+    public abstract string Name { get; }
+
+    public async Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+    {
+        //we can delegate to the async enumerable
+        var enumerable = HandleStreamingAsync(userQuestion, cancellationToken);
+        await foreach (var progress in enumerable)
+        {
+            //Actually since the client is not interested in the streaming, we can simpli ignore
+            //all progress messages.
+        }
+    }
+
+    public abstract IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
+}
+
 public record Question(string Text);

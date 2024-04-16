@@ -16,11 +16,11 @@ public static class Program
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<SimpleBookIndexing>();
+        services.AddSingleton<SimpleBookIndexingWithTextCleaning>();
         services.AddSingleton<SBertSample>();
         services.AddSingleton<BasicSample>();
         services.AddSingleton<TextCleanerHandler>();
-        services.AddSingleton<CustomPipelineBase>();
+        services.AddSingleton<CustomSearchPipelineBase>();
         services.AddSingleton<AnthropicSample>();
         services.AddHttpClient();
 
@@ -29,11 +29,10 @@ public static class Program
         // Ask for the user's favorite fruits
         var choices = new Dictionary<string, Type?>
         {
-            ["Basic Sample"] = typeof(SimpleBookIndexing),
-            ["Simple Book Indexing"] = typeof(SimpleBookIndexing),
-            ["Custom pipeline"] = typeof(TextCleanerHandler),
+            ["Basic Sample"] = typeof(SimpleBookIndexingWithTextCleaning),
+            ["Custom Pipeline (text cleaner)"] = typeof(SimpleBookIndexingWithTextCleaning),
             ["SBert in action"] = typeof(SBertSample),
-            ["Custom Search pipeline (Basic)"] = typeof(CustomPipelineBase),
+            ["Custom Search pipeline (Basic)"] = typeof(CustomSearchPipelineBase),
             ["Anthropic"] = typeof(AnthropicSample),
             ["Exit"] = null
         };

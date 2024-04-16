@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TiktokenSharp;
+using static SemanticMemory.Extensions.Anthropic.RawAnthropicClient;
 
 namespace SemanticMemory.Extensions.Anthropic;
 
@@ -39,11 +40,15 @@ internal class AnthropicTextGeneration : ITextGenerator
         TextGenerationOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var streamedResponse = _client.CallClaudeStreaming(
-            "You are an assistant that will answer user query based on a context",
-            prompt,
-            options.Temperature,
-            options.MaxTokens ?? 2048);
+        CallClaudeStreamingParams p = new CallClaudeStreamingParams
+        {
+            ModelName = _config.ModelName,
+            System = "You are an assistant that will answer user query based on a context",
+            Prompt = prompt,
+            Temperature = options.Temperature,
+            MaxTokens = options.MaxTokens ?? 2048
+        };
+        var streamedResponse = _client.CallClaudeStreaming(p);
 
         await foreach (var response in streamedResponse.WithCancellation(cancellationToken))
         {
