@@ -56,11 +56,19 @@ namespace SemanticMemory.Samples
                 {
                     var options = new UserQueryOptions("default");
                     UserQuestion userQuestion = new UserQuestion(options, question);
-                    await questionPipeline.ExecuteQuery(userQuestion);
+                    var questionEnumerator = questionPipeline.ExecuteQueryAsync(userQuestion);
 
-                    if (userQuestion.Answered)
+                    await foreach (var step in questionEnumerator)
                     {
-                        Console.WriteLine("Answer: " + userQuestion.Answer);
+                        if (step.Type == UserQuestionProgressType.AnswerPart)
+                        {
+                            Console.Write(step.Text);
+                        }
+                    }
+
+                    if (!userQuestion.Answered)
+                    {
+                        Console.WriteLine("Answer cannot be retrieved.");
                     }
                 }
             } while (!string.IsNullOrWhiteSpace(question));
@@ -102,7 +110,7 @@ namespace SemanticMemory.Samples
             var chatConfig = new AzureOpenAIConfig
             {
                 APIKey = Dotenv.Get("OPENAI_API_KEY"),
-                Deployment = Dotenv.Get("KERNEL_MEMORY_DEPLOYMENT_NAME"),
+                Deployment =  Dotenv.Get("KERNEL_MEMORY_DEPLOYMENT_NAME"),
                 Endpoint = Dotenv.Get("AZURE_ENDPOINT"),
                 APIType = AzureOpenAIConfig.APITypes.ChatCompletion,
                 Auth = AzureOpenAIConfig.AuthTypes.APIKey,
@@ -116,7 +124,7 @@ namespace SemanticMemory.Samples
             ElasticsearchConfig elasticsearchConfig = new ElasticsearchConfig()
             {
                 Endpoint = "http://localhost:9800",
-                IndexPrefix= "km",
+                IndexPrefix = "km",
                 ReplicaCount = 1,
                 ShardCount = 1,
             };

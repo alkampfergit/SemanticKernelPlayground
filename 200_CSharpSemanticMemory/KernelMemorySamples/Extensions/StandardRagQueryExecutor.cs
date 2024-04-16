@@ -7,14 +7,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions
 {
-    public class StandardRagQueryExecutor : BasicQueryHandler
-    { 
+    public class StandardRagQueryExecutor : BasicAsyncQueryHandler
+    {
         public override string Name => "StandardRagQueryExecutor";
 
         private readonly string _answerPrompt;
@@ -36,12 +37,14 @@ namespace SemanticMemory.Extensions
             this._answerPrompt = promptProvider.ReadPrompt(Constants.PromptNamesAnswerWithFacts);
         }
 
-        protected override async Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+        protected override async IAsyncEnumerable<UserQuestionProgress> OnHandleStreamingAsync(
+            UserQuestion userQuestion,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             if (userQuestion.Citations.Count == 0)
             {
                 //Well we have no memory we can simply return. 
-                return;
+                yield break;
             }
 
             var facts = new StringBuilder();
@@ -73,20 +76,20 @@ namespace SemanticMemory.Extensions
                 this._log.LogTrace("Adding text {0} with relevance {1}", factsUsedCount, partition.Relevance);
 
                 facts.Append(fact);
-                usedCitations.Add(citation);    
+                usedCitations.Add(citation);
                 tokensAvailable -= size;
             }
 
             if (factsAvailableCount > 0 && factsUsedCount == 0)
             {
                 this._log.LogError("Unable to inject memories in the prompt, not enough tokens available");
-                return;
+                yield break;
             }
 
             if (factsUsedCount == 0)
             {
                 this._log.LogWarning("No memories available");
-                return;
+                yield break;
             }
 
             var text = new StringBuilder();
@@ -96,6 +99,7 @@ namespace SemanticMemory.Extensions
             await foreach (var x in this.GenerateAnswerAsync(userQuestion.Question, facts.ToString())
                                .WithCancellation(cancellationToken).ConfigureAwait(false))
             {
+                yield return new UserQuestionProgress(UserQuestionProgressType.AnswerPart, x);
                 text.Append(x);
 
                 if (this._log.IsEnabled(LogLevel.Trace) && text.Length - charsGenerated >= 30)
@@ -108,12 +112,18 @@ namespace SemanticMemory.Extensions
             watch.Stop();
             this._log.LogTrace("Answer generated in {0} msecs", watch.ElapsedMilliseconds);
 
-            userQuestion.Answer= text.ToString();
+            userQuestion.Answer = text.ToString();
             // now we need to clean up the citations, including only the one used to answer the question
             userQuestion.Citations.Clear();
             userQuestion.Citations.AddRange(usedCitations);
         }
 
+        /// <summary>
+        /// Inner function is inerently async, so we can use the async enumerable
+        /// </summary>
+        /// <param name="question"></param>
+        /// <param name="facts"></param>
+        /// <returns></returns>
         private IAsyncEnumerable<string> GenerateAnswerAsync(string question, string facts)
         {
             var prompt = this._answerPrompt;

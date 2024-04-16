@@ -124,7 +124,12 @@ public abstract class BasicAsyncQueryHandler : IAsyncQueryHandler
         }
     }
 
-    public abstract IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
+    protected abstract IAsyncEnumerable<UserQuestionProgress> OnHandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
+
+    public IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+    {
+        return OnHandleStreamingAsync(userQuestion, cancellationToken);
+    }
 }
 
 public record Question(string Text);

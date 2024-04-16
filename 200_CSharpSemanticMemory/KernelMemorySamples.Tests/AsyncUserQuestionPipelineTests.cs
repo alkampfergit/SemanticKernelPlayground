@@ -44,7 +44,7 @@ namespace KernelMemorySamples.Tests
         {
             public override string Name => nameof(SimpleTextGeneratorAsync);
 
-            public override async IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, [EnumeratorCancellation] CancellationToken cancellationToken)
+            protected override async IAsyncEnumerable<UserQuestionProgress> OnHandleStreamingAsync(UserQuestion userQuestion, [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 //simulate something
                 yield return new UserQuestionProgress(UserQuestionProgressType.AnswerPart, "BLABLA");
