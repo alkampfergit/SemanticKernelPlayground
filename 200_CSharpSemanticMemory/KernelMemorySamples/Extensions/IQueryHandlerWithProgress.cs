@@ -10,7 +10,7 @@ namespace SemanticMemory.Extensions;
 /// have the ability to use a re-ranker to perform re-ranking of the result. The pipeline will have a stupid
 /// re-rank that actually does not re-rank but just concatenate the results.
 /// </summary>
-public interface IAsyncQueryHandler : IQueryHandler
+public interface IQueryHandlerWithProgress : IQueryHandler
 {
     /// <summary>
     /// Same functions of HandleAsync but with streaming support, because it is capable of raising 

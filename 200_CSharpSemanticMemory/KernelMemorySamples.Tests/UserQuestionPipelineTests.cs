@@ -127,50 +127,45 @@ namespace KernelMemorySamples.Tests
         }
 
         [Fact]
-        public async Task Standard_search_regroup_citations()
+        public async Task Ability_to_re_rank()
         {
             var sut = GenerateSut();
 
+            var citations1 = new Citation[]
+            {
+                CreateCitation("Document_1", "fileId", "lin1", "pieceoftextaa"),
+                CreateCitation("Document_2", "fileId", "lin2", "pieceoftext3")
+            };
+
+            var citations2 = new Citation[]
+            {
+                CreateCitation("Document_3", "fileId", "lin1", "pieceoftext of the same file")
+            };
+            Mock<IQueryHandler> mockDependency1 = GenerateCitationsMock("citations1", citations1);
+            Mock<IQueryHandler> mockDependency2 = GenerateCitationsMock("citations2", citations2);
+            Mock<IQueryHandler> mockDependency3 = GenerateRetrievalMock("pieceoftext", "Document_1", "fileId");
+
+            sut.AddHandler(mockDependency1.Object);
+            sut.AddHandler(mockDependency2.Object);
+            sut.AddHandler(mockDependency3.Object);
+            sut.AddHandler(new BaseAnswerSimulator());
+            
+            var userQuestion = new UserQuestion(GenerateOptions(), "test question");
+            await sut.ExecuteQuery(userQuestion);
+
+            //We have no result because the pipeline went in error
+            Assert.True(userQuestion.Answered);
+            Assert.NotNull(userQuestion.Citations);
+        }
+
+        [Fact]
+        public async Task Standard_search_regroup_citations()
+        {
+            var sut = GenerateSut();
             var citations = new List<Citation>();
-            citations.Add(new Citation()
-            {
-                DocumentId = "Document_1",
-                FileId = "fileId",
-                Link = "lin1",
-                Partitions = new List<Citation.Partition>()
-                {
-                    new Citation.Partition()
-                    {
-                        Text = "pieceoftextaa"
-                    }
-                }
-            });
-            citations.Add(new Citation()
-            {
-                DocumentId = "Document_2",
-                FileId = "fileId",
-                Link = "lin2",
-                Partitions = new List<Citation.Partition>()
-                {
-                    new Citation.Partition()
-                    {
-                        Text = "pieceoftext3"
-                    }
-                }
-            });
-            citations.Add(new Citation()
-            {
-                DocumentId = "Document_1",
-                FileId = "fileId",
-                Link = "lin1",
-                Partitions = new List<Citation.Partition>()
-                {
-                    new Citation.Partition()
-                    {
-                        Text = "pieceoftext of the same file"
-                    }
-                }
-            });
+            citations.Add(CreateCitation("Document_1", "fileId", "lin1", "pieceoftextaa"));
+            citations.Add(CreateCitation("Document_2", "fileId", "lin2", "pieceoftext3"));
+            citations.Add(CreateCitation("Document_1", "fileId", "lin1", "pieceoftext of the same file"));
 
             Mock<IQueryHandler> citationMock = GenerateCitationsMock("test1", citations);
             Mock<IQueryHandler> answerMock = GenerateQueryAnswerMock("answered");
@@ -198,6 +193,23 @@ namespace KernelMemorySamples.Tests
             Assert.Equal("pieceoftext3", firstCitation2.Partitions[0].Text);
         }
 
+        private static Citation CreateCitation(string documentId, string fileId, string link, string textPartition)
+        {
+            return new Citation()
+            {
+                DocumentId = documentId,
+                FileId = fileId,
+                Link = link,
+                Partitions = new List<Citation.Partition>()
+                {
+                    new Citation.Partition()
+                    {
+                        Text = textPartition
+                    }
+                }
+            };
+        }
+
         private UserQueryOptions GenerateOptions()
         {
             return new UserQueryOptions("index");
@@ -217,8 +229,10 @@ namespace KernelMemorySamples.Tests
             //now I need to mock the HandleAsync method modifying the user question adding extra questions
             var mockDependency = new Mock<IQueryHandler>();
             mockDependency.Setup(x => x.HandleAsync(It.IsAny<UserQuestion>(), It.IsAny<CancellationToken>()))
-                .Callback<UserQuestion, CancellationToken>((x, _) =>
+                .Callback<UserQuestion, CancellationToken>(async (x, _) =>
                 {
+                    //It must simulate taking all the citations
+                    var citations = await x.GetAvailableCitationsAsync();
                     var citation = new Citation()
                     {
                         DocumentId = documetnId,
@@ -246,13 +260,11 @@ namespace KernelMemorySamples.Tests
             //now I need to mock the HandleAsync method modifying the user question adding extra questions
             var mockDependency = new Mock<IQueryHandler>();
             mockDependency.Setup(x => x.HandleAsync(It.IsAny<UserQuestion>(), It.IsAny<CancellationToken>()))
-                .Callback<UserQuestion, CancellationToken>((x, _) =>
+                .Callback<UserQuestion, CancellationToken>(async (x, _) =>
                 {
                     //this simulate also a reranker.
-                    if (x.SourceCitations.Count == 1)
-                    {
-                        x.Citations = [.. x.SourceCitations.Single().Value];
-                    }
+                    var citations = await x.GetAvailableCitationsAsync();
+                    x.Citations = citations;
                     x.Answer = answer;
                 });
 
@@ -278,6 +290,25 @@ namespace KernelMemorySamples.Tests
         private static UserQuestionPipeline GenerateSut()
         {
             return new UserQuestionPipeline();
+        }
+
+        private class BaseAnswerSimulator : BasicQueryHandler
+        {
+            public BaseAnswerSimulator()
+            {
+                
+            }
+
+            public override string Name => nameof(BaseAnswerSimulator);
+
+            protected override async Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
+            {
+                await userQuestion.GetAvailableCitationsAsync();
+
+                userQuestion.Answer = "ANSWER";
+
+                userQuestion.Citations = [CreateCitation("a", "b", "c", "d")];
+            }
         }
     }
 }

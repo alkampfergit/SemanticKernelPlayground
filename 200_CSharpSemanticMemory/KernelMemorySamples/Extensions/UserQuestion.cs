@@ -72,6 +72,11 @@ public class UserQuestion
     /// </summary>
     public IReadOnlyCollection<Citation>? Citations { get; set; }
 
+    /// <summary>
+    /// If some error occurred we have the error here.
+    /// </summary>
+    public string Errors{ get; internal set; }
+
     private async Task<IReadOnlyCollection<Citation>> ReRankAsync()
     {
         if (SourceCitations.Count == 0)

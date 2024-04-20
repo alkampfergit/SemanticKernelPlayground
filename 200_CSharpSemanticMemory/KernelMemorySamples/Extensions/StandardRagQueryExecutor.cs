@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions
 {
-    public class StandardRagQueryExecutor : BasicAsyncQueryHandler
+    public class StandardRagQueryExecutor : BasicAsyncQueryHandlerWithProgress
     {
         public override string Name => "StandardRagQueryExecutor";
 

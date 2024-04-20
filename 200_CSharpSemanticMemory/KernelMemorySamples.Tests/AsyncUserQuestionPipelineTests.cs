@@ -40,7 +40,7 @@ namespace KernelMemorySamples.Tests
             return new UserQuestionPipeline();
         }
 
-        private class SimpleTextGeneratorAsync : BasicAsyncQueryHandler
+        private class SimpleTextGeneratorAsync : BasicAsyncQueryHandlerWithProgress
         {
             public override string Name => nameof(SimpleTextGeneratorAsync);
 

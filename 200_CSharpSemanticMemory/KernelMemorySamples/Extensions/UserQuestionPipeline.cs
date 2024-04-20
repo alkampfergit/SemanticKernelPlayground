@@ -46,7 +46,7 @@ namespace SemanticMemory.Extensions
                 foreach (var handler in _queryHandlers)
                 {
                     //here is the different part, we need to understand if it is a streaming handler
-                    if (handler is IAsyncQueryHandler asyncQueryHandler)
+                    if (handler is IQueryHandlerWithProgress asyncQueryHandler)
                     {
                         //Simply enumerate and return enumeration to the caller.
                         var progress = asyncQueryHandler.HandleStreamingAsync(userQuestion, cancellationToken);
@@ -81,10 +81,20 @@ namespace SemanticMemory.Extensions
             {
                 return;
             }
+            userQuestion._reRanker = this._reRanker;
             foreach (var handler in _queryHandlers)
             {
                 //Execute the handler and verify if the question has been answered.
-                await handler.HandleAsync(userQuestion, cancellationToken);
+                try
+                {
+                    await handler.HandleAsync(userQuestion, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    userQuestion.Errors = $"Exception in handler {handler.GetType().FullName} - {ex}";
+                    break;
+                }
+
                 if (userQuestion.Answered)
                 {
                     //We break the pipeline if the question has been answered

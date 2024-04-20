@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions;
 
-public abstract class BasicAsyncQueryHandler : IAsyncQueryHandler
+public abstract class BasicAsyncQueryHandlerWithProgress : IQueryHandlerWithProgress
 {
     public abstract string Name { get; }
 
@@ -14,7 +14,7 @@ public abstract class BasicAsyncQueryHandler : IAsyncQueryHandler
         var enumerable = HandleStreamingAsync(userQuestion, cancellationToken);
         await foreach (var progress in enumerable)
         {
-            //Actually since the client is not interested in the streaming, we can simpli ignore
+            //Actually since the client is not interested in the streaming, we can simply ignore
             //all progress messages.
         }
     }
