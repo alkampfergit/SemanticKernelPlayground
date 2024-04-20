@@ -120,9 +120,10 @@ namespace KernelMemorySamples.Tests
             Assert.Null(userQuestion.Answer);
             //Verify that we have extracted memories
             Assert.Single(userQuestion.Citations);
-            Assert.Equal("pieceoftext", userQuestion.Citations[0].Partitions.Single().Text);
-            Assert.Equal("Document_1", userQuestion.Citations[0].DocumentId);
-            Assert.Equal("fileId", userQuestion.Citations[0].FileId);
+            var citation = userQuestion.Citations.First();
+            Assert.Equal("pieceoftext", citation.Partitions.Single().Text);
+            Assert.Equal("Document_1", citation.DocumentId);
+            Assert.Equal("fileId", citation.FileId);
         }
 
         [Fact]
@@ -171,7 +172,7 @@ namespace KernelMemorySamples.Tests
                 }
             });
 
-            Mock<IQueryHandler> citationMock = GenerateCitationsMock(citations);
+            Mock<IQueryHandler> citationMock = GenerateCitationsMock("test1", citations);
             Mock<IQueryHandler> answerMock = GenerateQueryAnswerMock("answered");
 
             sut.AddHandler(citationMock.Object);
@@ -183,7 +184,9 @@ namespace KernelMemorySamples.Tests
             Assert.True(userQuestion.Answered);
 
             //now we need to verify the citations,
-            Assert.Equal(2, userQuestion.Citations.Count);
+            Assert.Single(userQuestion.SourceCitations);
+            Assert.Equal(3, userQuestion.SourceCitations["test1"].Count);
+
             var firstCitation1 = userQuestion.Citations.Single(c => c.Link == "lin1");
             var firstCitation2 = userQuestion.Citations.Single(c => c.Link == "lin2");
 
@@ -229,7 +232,7 @@ namespace KernelMemorySamples.Tests
                         }
                     };
 
-                    x.Citations.Add(citation);
+                    x.Citations = [citation];
                 });
 
             //setup return value for the Name property
@@ -243,7 +246,15 @@ namespace KernelMemorySamples.Tests
             //now I need to mock the HandleAsync method modifying the user question adding extra questions
             var mockDependency = new Mock<IQueryHandler>();
             mockDependency.Setup(x => x.HandleAsync(It.IsAny<UserQuestion>(), It.IsAny<CancellationToken>()))
-                .Callback<UserQuestion, CancellationToken>((x, _) => x.Answer = answer);
+                .Callback<UserQuestion, CancellationToken>((x, _) =>
+                {
+                    //this simulate also a reranker.
+                    if (x.SourceCitations.Count == 1)
+                    {
+                        x.Citations = [.. x.SourceCitations.Single().Value];
+                    }
+                    x.Answer = answer;
+                });
 
             //setup return value for the Name property
             mockDependency.Setup(x => x.Name).Returns(AnswerHandlerValue);
@@ -251,12 +262,12 @@ namespace KernelMemorySamples.Tests
             return mockDependency;
         }
 
-        private static Mock<IQueryHandler> GenerateCitationsMock(IEnumerable<Citation> citations)
+        private static Mock<IQueryHandler> GenerateCitationsMock(string sourceName, IEnumerable<Citation> citations)
         {
             //now I need to mock the HandleAsync method modifying the user question adding extra questions
             var mockDependency = new Mock<IQueryHandler>();
             mockDependency.Setup(x => x.HandleAsync(It.IsAny<UserQuestion>(), It.IsAny<CancellationToken>()))
-                .Callback<UserQuestion, CancellationToken>((x, _) => x.Citations.AddRange(citations));
+                .Callback<UserQuestion, CancellationToken>((x, _) => x.AddCitations(sourceName, citations));
 
             //setup return value for the Name property
             mockDependency.Setup(x => x.Name).Returns(AnswerHandlerValue);

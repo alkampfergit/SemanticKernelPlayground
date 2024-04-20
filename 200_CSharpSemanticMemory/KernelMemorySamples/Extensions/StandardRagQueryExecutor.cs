@@ -41,7 +41,8 @@ namespace SemanticMemory.Extensions
             UserQuestion userQuestion,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            if (userQuestion.Citations.Count == 0)
+            var citations = await userQuestion.GetAvailableCitationsAsync();
+            if (citations.Count == 0)
             {
                 //Well we have no memory we can simply return. 
                 yield break;
@@ -56,10 +57,10 @@ namespace SemanticMemory.Extensions
                 - this._textGenerator.CountTokens(userQuestion.Question)
                 - this._config.AnswerTokens;
 
-            int factsAvailableCount = userQuestion.Citations.Count;
+            int factsAvailableCount = citations.Count;
             int factsUsedCount = 0;
             List<Citation> usedCitations = new List<Citation>();
-            foreach (var citation in userQuestion.Citations)
+            foreach (var citation in citations)
             {
                 factsAvailableCount++;
                 var partition = citation.Partitions.Single();
@@ -114,8 +115,7 @@ namespace SemanticMemory.Extensions
 
             userQuestion.Answer = text.ToString();
             // now we need to clean up the citations, including only the one used to answer the question
-            userQuestion.Citations.Clear();
-            userQuestion.Citations.AddRange(usedCitations);
+            userQuestion.Citations = usedCitations.AsReadOnly();
         }
 
         /// <summary>

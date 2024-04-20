@@ -11,9 +11,17 @@ namespace SemanticMemory.Extensions
     {
         private readonly List<IQueryHandler> _queryHandlers = new List<IQueryHandler>();
 
+        private IReRanker _reRanker = new BaseReRanker();
+
         public UserQuestionPipeline AddHandler(IQueryHandler queryHandler)
         {
             _queryHandlers.Add(queryHandler);
+            return this;
+        }
+
+        public UserQuestionPipeline SetReRanker(IReRanker reRanker)
+        {
+            _reRanker = reRanker;
             return this;
         }
 
@@ -60,7 +68,9 @@ namespace SemanticMemory.Extensions
                         break;
                     }
                 }
+
                 HandleCitations(userQuestion);
+
                 yield return new UserQuestionProgress(UserQuestionProgressType.PipelineCompleted, "Pipeline completed");
             }
         }
@@ -90,7 +100,7 @@ namespace SemanticMemory.Extensions
         {
             //if the question was answered we need to group citations
             //TODO: change the internal data instead of using citations?
-            if (userQuestion.Answered)
+            if (userQuestion.Answered && userQuestion.Citations != null)
             {
                 userQuestion.Citations = userQuestion
                     .Citations

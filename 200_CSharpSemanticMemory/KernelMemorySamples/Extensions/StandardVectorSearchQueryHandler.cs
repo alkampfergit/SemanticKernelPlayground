@@ -95,7 +95,7 @@ namespace SemanticMemory.Extensions
             }
 
             //ok now that you have all the memory record and citations, add to the object
-            userQuestion.Citations.AddRange(citations);
+            userQuestion.AddCitations("standard-vector-search", citations);
         }
     }
 }

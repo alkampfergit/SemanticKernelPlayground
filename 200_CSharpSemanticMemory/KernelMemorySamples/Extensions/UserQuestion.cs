@@ -1,6 +1,9 @@
-﻿using Microsoft.KernelMemory;
+﻿using Elastic.Clients.Elasticsearch.IndexManagement;
+using Microsoft.KernelMemory;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions;
@@ -11,6 +14,17 @@ namespace SemanticMemory.Extensions;
 /// </summary>
 public class UserQuestion
 {
+    internal IReRanker? _reRanker { get; set; }
+
+    /// <summary>
+    /// Add current re-ranker used to re-rank the results.
+    /// </summary>
+    /// <param name="reRanker"></param>
+    internal void AddReRanker(IReRanker reRanker)
+    {
+        _reRanker = reRanker;
+    }   
+
     public UserQueryOptions UserQueryOptions { get; }
 
     public string Question { get; }
@@ -23,9 +37,58 @@ public class UserQuestion
     public List<Question> ExpandedQuestions { get; }
 
     /// <summary>
-    /// List of citations that were used to answer the question
+    /// We can have more than one single way of search information, so we can
+    /// have multiple list of citations.
     /// </summary>
-    public List<Citation> Citations { get; set; }
+    public ConcurrentDictionary<string, IReadOnlyCollection<Citation>> SourceCitations { get;  } = new();
+
+    /// <summary>
+    /// Add a list of citations for a specific source, you will overwrite entirely the 
+    /// previous list of citations if you use the very source name.
+    /// </summary>
+    /// <param name="sourceName"></param>
+    /// <param name="citations"></param>
+    public void AddCitations(string sourceName, IEnumerable<Citation> citations)
+    {
+        SourceCitations[sourceName] = citations.ToArray();
+        //Invalidate the citations, we need to rerank;
+        _citations = null;
+    }
+
+    private IReadOnlyCollection<Citation>? _citations;
+
+    /// <summary>
+    /// This method will return all citations ordered and re-ranked to be used in the
+    /// G part of the RAG.
+    /// </summary>
+    public async Task<IReadOnlyCollection<Citation>> GetAvailableCitationsAsync()
+    {
+        return _citations ??= await ReRankAsync();
+    }
+
+    /// <summary>
+    /// This is the final citation set by the andler when the answer is ok. It is usually set
+    /// by the handler that set answer.
+    /// </summary>
+    public IReadOnlyCollection<Citation>? Citations { get; set; }
+
+    private async Task<IReadOnlyCollection<Citation>> ReRankAsync()
+    {
+        if (SourceCitations.Count == 0)
+        {
+            return [];
+        }
+        if (SourceCitations.Count == 1)
+        {
+            return [.. SourceCitations.First().Value];
+        }
+
+        if (_reRanker == null)
+        {
+            throw new KernelMemoryException($"We have more than one Source Citation, source citations are {SourceCitations.Count} but we have no re-ranker");
+        }
+        return await _reRanker.ReRankAsync(SourceCitations);
+    }
 
     /// <summary>
     /// This is the Answer to the question, when an handler popuplate this field
@@ -49,7 +112,6 @@ public class UserQuestion
         Question = question;
         Filters = filters;
         ExpandedQuestions = [];
-        Citations = [];
     }
 }
 
@@ -63,73 +125,8 @@ public class UserQueryOptions
     public double MinRelevance { get; set; }
 
     public string Index { get; private set; }
-    public int RetrievalQueryLimit { get; internal set; }
-}
 
-/// <summary>
-/// Handlers are responsible for handling user questions to perform various operations
-/// </summary>
-public interface IQueryHandler
-{
-    /// <summary>
-    /// Handle the question, usually it will modify the UserQuestion object until we reach
-    /// the final step where we have all segments used to generate the answer.
-    /// </summary>
-    /// <param name="userQuestion"></param>
-    /// <returns></returns>
-    Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Each handler has a name to identify it.
-    /// </summary>
-    string Name { get; }
-}
-
-public interface IAsyncQueryHandler : IQueryHandler
-{
-    /// <summary>
-    /// Same functions of HandleAsync but with streaming support, because it is capable of raising 
-    /// events while the answer is being generated.
-    /// </summary>
-    /// <param name="userQuestion"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
-}
-
-public abstract class BasicQueryHandler : IQueryHandler
-{
-    public abstract string Name { get; }
-
-    public Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken) 
-    {
-        return OnHandleAsync(userQuestion, cancellationToken);
-    }
-
-    protected abstract Task OnHandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
-}
-
-public abstract class BasicAsyncQueryHandler : IAsyncQueryHandler
-{
-    public abstract string Name { get; }
-
-    public async Task HandleAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
-    {
-        //we can delegate to the async enumerable
-        var enumerable = HandleStreamingAsync(userQuestion, cancellationToken);
-        await foreach (var progress in enumerable)
-        {
-            //Actually since the client is not interested in the streaming, we can simpli ignore
-            //all progress messages.
-        }
-    }
-
-    protected abstract IAsyncEnumerable<UserQuestionProgress> OnHandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken);
-
-    public IAsyncEnumerable<UserQuestionProgress> HandleStreamingAsync(UserQuestion userQuestion, CancellationToken cancellationToken)
-    {
-        return OnHandleStreamingAsync(userQuestion, cancellationToken);
-    }
+    public int RetrievalQueryLimit { get; internal set; } = 10;
 }
 
 public record Question(string Text);
