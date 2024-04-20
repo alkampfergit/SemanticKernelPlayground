@@ -17,9 +17,10 @@ namespace SemanticMemory.Extensions
         /// Accept the dictionary of source citations, and then will return an ordered list
         /// of <see cref="Citation"/> and it can also perform deduplication.
         /// </summary>
+        /// <param name="question">The original question made by the user.</param>
         /// <param name="citations">List of the original citations.</param>
         /// <returns></returns>
-        Task<IReadOnlyCollection<Citation>> ReRankAsync(IReadOnlyDictionary<string, IReadOnlyCollection<Citation>> citations);
+        Task<IReadOnlyCollection<Citation>> ReRankAsync(string question, IReadOnlyDictionary<string, IReadOnlyCollection<Citation>> citations);
     }
 
     /// <summary>
@@ -28,7 +29,7 @@ namespace SemanticMemory.Extensions
     /// </summary>
     public class BaseReRanker : IReRanker
     {
-        public Task<IReadOnlyCollection<Citation>> ReRankAsync(IReadOnlyDictionary<string, IReadOnlyCollection<Citation>> citations)
+        public Task<IReadOnlyCollection<Citation>> ReRankAsync(string question, IReadOnlyDictionary<string, IReadOnlyCollection<Citation>> citations)
         {
             if (citations.Count == 0)
             {

@@ -1,4 +1,4 @@
-﻿using FreeMindLabs.KernelMemory.Elasticsearch;
+﻿using KernelMemory.ElasticSearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
@@ -9,6 +9,7 @@ using Microsoft.KernelMemory.MemoryStorage;
 using Microsoft.KernelMemory.MemoryStorage.DevTools;
 using Microsoft.KernelMemory.Prompts;
 using SemanticMemory.Extensions;
+using SemanticMemory.Extensions.Cohere;
 using SemanticMemory.Helper;
 using Spectre.Console;
 using System;
@@ -22,9 +23,17 @@ namespace SemanticMemory.Samples
         public async Task RunSample(string bookPdf)
         {
             var services = new ServiceCollection();
-            var builder = CreateBasicKernelMemoryBuilder(services);
 
+            CohereConfiguration cohereConfiguration = new CohereConfiguration();
+            cohereConfiguration.ApiKey = Dotenv.Get("COHERE_API_KEY");
+
+            services.AddSingleton(cohereConfiguration);
+            services.AddSingleton<RawCohereClient>();
+            services.AddHttpClient();
+
+            var builder = CreateBasicKernelMemoryBuilder(services);
             var kernelMemory = builder.Build<MemoryServerless>();
+
             var serviceProvider = services.BuildServiceProvider();
             var docId = Path.GetFileName(bookPdf);
 
@@ -44,7 +53,16 @@ namespace SemanticMemory.Samples
 
             var questionPipeline = new UserQuestionPipeline();
             questionPipeline.AddHandler(new StandardVectorSearchQueryHandler(vectorDb));
+
+            var advancedDb = serviceProvider.GetService<IMemoryDb>() as IAdvancedMemoryDb;
+            if (advancedDb != null)
+            {
+                questionPipeline.AddHandler(new KeywordSearchQueryHandler(advancedDb));
+            }
             questionPipeline.AddHandler(new StandardRagQueryExecutor(textGenerator, searchClientConfig, promptProvider));
+
+            var cohereClient = serviceProvider.GetRequiredService<RawCohereClient>();
+            questionPipeline.SetReRanker(new CohereReRanker(cohereClient));
 
             // now ask a question to the user continuously until the user ask an empty question
             string? question;
@@ -110,7 +128,7 @@ namespace SemanticMemory.Samples
             var chatConfig = new AzureOpenAIConfig
             {
                 APIKey = Dotenv.Get("OPENAI_API_KEY"),
-                Deployment =  Dotenv.Get("KERNEL_MEMORY_DEPLOYMENT_NAME"),
+                Deployment = Dotenv.Get("KERNEL_MEMORY_DEPLOYMENT_NAME"),
                 Endpoint = Dotenv.Get("AZURE_ENDPOINT"),
                 APIType = AzureOpenAIConfig.APITypes.ChatCompletion,
                 Auth = AzureOpenAIConfig.AuthTypes.APIKey,
@@ -120,14 +138,6 @@ namespace SemanticMemory.Samples
             var kernelMemoryBuilder = new KernelMemoryBuilder(services)
                 .WithAzureOpenAITextGeneration(chatConfig)
                 .WithAzureOpenAITextEmbeddingGeneration(embeddingConfig);
-
-            ElasticsearchConfig elasticsearchConfig = new ElasticsearchConfig()
-            {
-                Endpoint = "http://localhost:9800",
-                IndexPrefix = "km",
-                ReplicaCount = 1,
-                ShardCount = 1,
-            };
 
             var storage = AnsiConsole.Prompt(new SelectionPrompt<string>()
                 .Title("Select the storage to use")
@@ -144,7 +154,14 @@ namespace SemanticMemory.Samples
 
             if (storage == "elasticsearch")
             {
-                kernelMemoryBuilder.WithElasticsearch(elasticsearchConfig);
+                KernelMemoryElasticSearchConfig kernelMemoryElasticSearchConfig = new KernelMemoryElasticSearchConfig();
+                kernelMemoryElasticSearchConfig.ServerAddress = "http://localhost:9800";
+                kernelMemoryElasticSearchConfig.IndexPrefix = "km";
+                kernelMemoryElasticSearchConfig.ReplicaCount = 1;
+                kernelMemoryElasticSearchConfig.ShardNumber = 1;
+                kernelMemoryElasticSearchConfig.IndexablePayloadProperties = ["text"];
+
+                kernelMemoryBuilder.WithElasticSearch(kernelMemoryElasticSearchConfig);
             }
             else
             {

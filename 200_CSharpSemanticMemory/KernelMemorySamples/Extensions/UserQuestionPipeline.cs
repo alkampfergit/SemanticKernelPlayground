@@ -39,6 +39,7 @@ namespace SemanticMemory.Extensions
         /// <returns></returns>
         public async IAsyncEnumerable<UserQuestionProgress> ExecuteQueryAsync(UserQuestion userQuestion, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            userQuestion._reRanker = this._reRanker;
             //this is a completely different way to interact with the question, each handler should implement
             //the IAsyncEnumerable interface to communicate progress.
             if (!string.IsNullOrWhiteSpace(userQuestion.Question))

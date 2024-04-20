@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.ContentStorage.DevTools;
+using Microsoft.KernelMemory.DataFormats;
 using Microsoft.KernelMemory.FileSystem.DevTools;
 using Microsoft.KernelMemory.Handlers;
 using Microsoft.KernelMemory.MemoryStorage.DevTools;
@@ -16,15 +17,22 @@ namespace SemanticMemory.Samples
         public async Task RunSample(string bookPdf)
         {
             var services = new ServiceCollection();
+            
+            //do not forget to add decoders
+            services.AddDefaultContentDecoders();
+
             var builder = CreateBasicKernelMemoryBuilder(services);
             var kernelMemory = builder.Build<MemoryServerless>();
 
             var orchestrator = builder.GetOrchestrator();
 
+            var serviceProvider = services.BuildServiceProvider();
+            var decoders = serviceProvider.GetServices<IContentDecoder>();
+
             // Add pipeline handlers
             Console.WriteLine("* Defining pipeline handlers...");
 
-            TextExtractionHandler textExtraction = new("extract", orchestrator);
+            TextExtractionHandler textExtraction = new("extract", orchestrator, decoders);
             await orchestrator.AddHandlerAsync(textExtraction);
 
             TextCleanerHandler textCleanerHandler = new("clean", orchestrator);

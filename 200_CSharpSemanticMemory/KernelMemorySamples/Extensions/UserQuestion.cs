@@ -92,7 +92,7 @@ public class UserQuestion
         {
             throw new KernelMemoryException($"We have more than one Source Citation, source citations are {SourceCitations.Count} but we have no re-ranker");
         }
-        return await _reRanker.ReRankAsync(SourceCitations);
+        return await _reRanker.ReRankAsync(this.Question, SourceCitations);
     }
 
     /// <summary>

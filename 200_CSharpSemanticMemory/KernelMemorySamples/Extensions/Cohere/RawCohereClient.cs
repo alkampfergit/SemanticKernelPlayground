@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 
 namespace SemanticMemory.Extensions.Cohere;
 
+public class CohereConfiguration
+{
+    public string ApiKey { get; set; }
+
+    public string? HttpFactoryClientName { get; set; }
+}
+
 public class RawCohereClient
 {
     private readonly string _apiKey;
@@ -16,13 +23,12 @@ public class RawCohereClient
     private readonly string _baseUrl = "https://api.cohere.ai/";
 
     public RawCohereClient(
-        string apiKey,
-        IHttpClientFactory httpClientFactory,
-        string? httpClientName)
+        CohereConfiguration config,
+        IHttpClientFactory httpClientFactory)
     {
-        _apiKey = apiKey;
+        _apiKey = config.ApiKey;
         _httpClientFactory = httpClientFactory;
-        _httpClientName = httpClientName;
+        _httpClientName = config.HttpFactoryClientName;
     }
 
     private HttpClient CreateHttpClient()

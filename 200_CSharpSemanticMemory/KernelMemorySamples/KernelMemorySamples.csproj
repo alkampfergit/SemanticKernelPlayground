@@ -38,21 +38,25 @@
   </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Alkampfer.KernelMemory.ElasticSearch" Version="0.6.0-alpha0013" />
       <PackageReference Include="CommandDotNet.Spectre" Version="3.0.2" />
-      <PackageReference Include="FreeMindLabs.KernelMemory.Elasticsearch" Version="0.9.5" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0-preview.2.24128.5" />
       <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.2.24157.4" />
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0-preview.2.24128.5" />
       <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0-preview.2.24128.5" />
-      <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.35.240321.1" />
-      <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.6.3" />
+      <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.36.240416.1" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.7.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.7.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.7.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.7.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.7.1" />
       <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
       <PackageReference Include="MongoDB.Driver.GridFS" Version="2.24.0" />
       <PackageReference Include="TiktokenSharp" Version="1.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Extensions\Elasticsearch\" />
     </ItemGroup>
 
     <!--<ItemGroup>

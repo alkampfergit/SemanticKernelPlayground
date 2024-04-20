@@ -29,15 +29,15 @@ public static class Program
         services.AddSingleton<AnthropicSample>();
         services.AddHttpClient();
 
-        var sp = services.BuildServiceProvider();
-        var httpFactory = sp.GetService<IHttpClientFactory>();
-        var rr = new RawCohereClient(Dotenv.Get("COHERE_API_KEY"), httpFactory, null);
+        //var sp = services.BuildServiceProvider();
+        //var httpFactory = sp.GetService<IHttpClientFactory>();
+        //var rr = new RawCohereClient(Dotenv.Get("COHERE_API_KEY"), httpFactory, null);
 
-        var rrresult = await rr.ReRankAsync(new CohereReRankRequest("What is the capital of the United States?",
-            ["Carson City is the capital city of the American state of Nevada.",
-                  "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean. Its capital is Saipan.",
-                  "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district.",
-                  "Capital punishment (the death penalty) has existed in the United States since beforethe United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states."]));
+        //var rrresult = await rr.ReRankAsync(new CohereReRankRequest("What is the capital of the United States?",
+        //    ["Carson City is the capital city of the American state of Nevada.",
+        //          "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean. Its capital is Saipan.",
+        //          "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district.",
+        //          "Capital punishment (the death penalty) has existed in the United States since beforethe United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states."]));
 
         var serviceProvider = services.BuildServiceProvider();
 
