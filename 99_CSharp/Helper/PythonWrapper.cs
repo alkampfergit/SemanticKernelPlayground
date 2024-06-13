@@ -10,6 +10,7 @@ public class PythonWrapper
     {
         python3Location = python3location;
     }
+
     public string Execute(string scriptPath, string arguments = "")
     {
         if (!File.Exists(python3Location))

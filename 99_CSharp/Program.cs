@@ -23,8 +23,8 @@ public static class Program
         //await Ex02_InvokeLLMDirectly();
         //await Ex02_b_InvokeLLMDirectly();
 
-        // await Ex03_DirectSequentialCallToExtractVideo();
-        // await Ex03_b_DirectSequentialCallToExtractVideo();
+        //await Ex03_DirectSequentialCallToExtractVideo();
+        //await Ex03_b_DirectSequentialCallToExtractVideo();
 
         //await Ex04_Load_function_in_builder();
         await Ex05_basic_planner();
@@ -290,7 +290,7 @@ public static class Program
         var av = new AudioVideoPlugin.AudioVideoPlugin();
         av.ExtractAudio(@"C:\temp\ssh.mp4");
 
-        var python = new PythonWrapper(@"C:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
+        var python = new PythonWrapper(@"A:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
         var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
         var result = python.Execute(script, @"C:\temp\ssh.wav");
         Console.WriteLine(result);
