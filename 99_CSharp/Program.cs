@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -9,6 +10,7 @@ using SemanticKernelExperiments.Helper;
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace SemanticKernelExperiments;
@@ -21,13 +23,14 @@ public static class Program
         //string result = Ex01_CallPluginDirectly();
 
         //await Ex02_InvokeLLMDirectly();
+        await Ex02a_InvokeOpenaiClient();
         //await Ex02_b_InvokeLLMDirectly();
 
         //await Ex03_DirectSequentialCallToExtractVideo();
         //await Ex03_b_DirectSequentialCallToExtractVideo();
 
         //await Ex04_Load_function_in_builder();
-        await Ex05_basic_planner();
+        //await Ex05_basic_planner();
         Console.ReadLine();
     }
 
@@ -36,6 +39,23 @@ public static class Program
         var builder = CreateBasicKernelBuilder();
         var kernel = builder.Build();
         var result = await kernel.InvokePromptAsync("How are you today");
+        Console.WriteLine(result);
+    }
+
+    public static async Task Ex02a_InvokeOpenaiClient()
+    {
+        var builder = CreateBasicKernelBuilder();
+        var kernel = builder.Build();
+        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        
+        ChatHistory chatMessages = new();
+        chatMessages.AddUserMessage("Hi what is your name?");
+        chatMessages.AddAssistantMessage("I am an Assistant ai but you can call me Jarvis");
+        chatMessages.AddUserMessage("My name is Gian Maria");
+        chatMessages.AddAssistantMessage("Hi Gian Maria how can I help you?");
+        chatMessages.AddUserMessage("Tell my name and repeat how can I call you!");
+
+        var result = await chatCompletionService.GetChatMessageContentAsync(chatMessages );
         Console.WriteLine(result);
     }
 
@@ -272,7 +292,7 @@ public static class Program
             .AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>())));
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
-            "GPT42", //"GPT35_2",//"GPT42",
+            "GPT4o", //"GPT35_2",//"GPT42",
             Dotenv.Get("OPENAI_API_BASE"),
             Dotenv.Get("OPENAI_API_KEY"));
 
