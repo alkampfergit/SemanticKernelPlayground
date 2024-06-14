@@ -186,8 +186,10 @@ namespace SemanticKernelExperiments.Helper
 
                     LLMCall lLMCall = new LLMCall()
                     {
+                        Url = request.RequestUri.ToString(),    
                         CorrelationKey = request.Headers.GetValues("x-ms-client-request-id").First(),
                         Prompt = jsonObject.GetProperty("messages").ToString(),
+                        FullRequest = jsonObject.ToString(),
                         PromptFunctions = tools.ToString(),
                         CallStart = DateTime.UtcNow
                     };

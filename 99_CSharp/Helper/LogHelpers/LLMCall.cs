@@ -4,9 +4,16 @@ namespace SemanticKernelExperiments.Helper.LogHelpers
 {
     public class LLMCall
     {
+        public  string Url { get; set; }
+
         public string CorrelationKey { get; set; }
 
         public string Prompt { get; set; }
+
+        /// <summary>
+        /// Full RAW request made by semantic kernel.
+        /// </summary>
+        public string FullRequest { get; set; }
 
         public string PromptFunctions { get; set; }
 

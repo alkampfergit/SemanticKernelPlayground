@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -10,7 +9,7 @@ using SemanticKernelExperiments.Helper;
 using System;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SemanticKernelExperiments;
@@ -18,13 +17,15 @@ namespace SemanticKernelExperiments;
 public static class Program
 {
     private static DumpLoggingProvider _loggingProvider = new DumpLoggingProvider();
+
     static async Task Main(string[] args)
     {
         //string result = Ex01_CallPluginDirectly();
 
         //await Ex02_InvokeLLMDirectly();
-        await Ex02a_InvokeOpenaiClient();
+        //await Ex02a_InvokeOpenaiClient();
         //await Ex02_b_InvokeLLMDirectly();
+        await Ex02_c_InvokeLLMDirectly();
 
         //await Ex03_DirectSequentialCallToExtractVideo();
         //await Ex03_b_DirectSequentialCallToExtractVideo();
@@ -47,7 +48,7 @@ public static class Program
         var builder = CreateBasicKernelBuilder();
         var kernel = builder.Build();
         var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-        
+
         ChatHistory chatMessages = new();
         chatMessages.AddUserMessage("Hi what is your name?");
         chatMessages.AddAssistantMessage("I am an Assistant ai but you can call me Jarvis");
@@ -55,7 +56,7 @@ public static class Program
         chatMessages.AddAssistantMessage("Hi Gian Maria how can I help you?");
         chatMessages.AddUserMessage("Tell my name and repeat how can I call you!");
 
-        var result = await chatCompletionService.GetChatMessageContentAsync(chatMessages );
+        var result = await chatCompletionService.GetChatMessageContentAsync(chatMessages);
         Console.WriteLine(result);
     }
 
@@ -87,6 +88,68 @@ public static class Program
                 ["messages"] = chatMessages
             });
         Console.WriteLine("Result: {0}", result);
+    }
+
+    public static async Task Ex02_c_InvokeLLMDirectly()
+    {
+        var builder = CreateBasicKernelBuilder();
+        var kernel = builder.Build();
+
+        // Create a template for chat with settings
+        var chat = kernel.CreateFunctionFromPrompt(new PromptTemplateConfig()
+        {
+            Name = "Chat",
+            Description = "Chat with the assistant.",
+            Template = "{{$history}} User: {{$request}} Assistant: ",
+            TemplateFormat = "semantic-kernel",
+            InputVariables =
+            [
+                new() { Name = "history", Description = "The history of the conversation.", IsRequired = false, Default = "" },
+                new() { Name = "request", Description = "The user's request.", IsRequired = true }
+            ],
+            ExecutionSettings =
+            {
+                { "default", new OpenAIPromptExecutionSettings()
+                    {
+                        MaxTokens = 1000,
+                        Temperature = 0,
+                        ModelId = "gpt35",
+                    }
+                },
+            }
+        });
+
+        StringBuilder history = new();
+        history.AppendLine("You are an assistant that help user to find answer and your name is Jarvis");
+        KernelArguments ka = new();
+        ka["history"] = history.ToString();
+        ka["request"] = "My name is Gian Maria, what is your name and purpose?";
+
+        var result = await kernel.InvokeAsync(chat, ka);
+
+        var calls = _loggingProvider.GetLLMCalls();
+
+        AppendResult(history, result);
+
+        ka = new();
+        ka["history"] = history.ToString();
+        ka["request"] = "I'd like to know which is the nearest star from our solar system?";
+        result = await kernel.InvokeAsync(chat, ka);
+        AppendResult(history, result);
+
+        ka = new();
+        ka["history"] = history.ToString();
+        ka["request"] = "Do you know which is the position on hersprung russel diagram?";
+
+        result = await kernel.InvokeAsync(chat, ka);
+
+        Console.WriteLine("Result: {0}", result);
+    }
+
+    private static void AppendResult(StringBuilder history, FunctionResult result)
+    {
+        history.Append("Assistant: ");
+        history.AppendLine(result.GetValue<string>());
     }
 
     /// <summary>
@@ -169,6 +232,7 @@ public static class Program
         OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
         {
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            Temperature = 0,
         };
 
         var chatPrompt = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Prompts", "chat.yaml");
@@ -292,9 +356,18 @@ public static class Program
             .AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>())));
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
+            "GPT35_2",
+            Dotenv.Get("OPENAI_API_BASE"),
+            Dotenv.Get("OPENAI_API_KEY"),
+            serviceId: "gpt35",
+            modelId: "gpt35");
+
+        kernelBuilder.Services.AddAzureOpenAIChatCompletion(
             "GPT4o", //"GPT35_2",//"GPT42",
             Dotenv.Get("OPENAI_API_BASE"),
-            Dotenv.Get("OPENAI_API_KEY"));
+            Dotenv.Get("OPENAI_API_KEY"),
+            serviceId: "default",
+            modelId: "gpt4o");
 
         return kernelBuilder;
     }
