@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Planning.Handlebars;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,9 +26,9 @@ public static class Program
         //await Ex02_InvokeLLMDirectly();
         //await Ex02a_InvokeOpenaiClient();
         //await Ex02_b_InvokeLLMDirectly();
-        await Ex02_c_InvokeLLMDirectly();
+        //await Ex02_c_InvokeLLMDirectly();
 
-        //await Ex03_DirectSequentialCallToExtractVideo();
+        await Ex03_DirectSequentialCallToExtractVideo();
         //await Ex03_b_DirectSequentialCallToExtractVideo();
 
         //await Ex04_Load_function_in_builder();
@@ -56,7 +57,11 @@ public static class Program
         chatMessages.AddAssistantMessage("Hi Gian Maria how can I help you?");
         chatMessages.AddUserMessage("Tell my name and repeat how can I call you!");
 
-        var result = await chatCompletionService.GetChatMessageContentAsync(chatMessages);
+        var result = await chatCompletionService.GetChatMessageContentAsync(chatMessages, new OpenAIPromptExecutionSettings()
+        {
+            MaxTokens = 122,
+            Temperature = 0,
+        });
         Console.WriteLine(result);
     }
 
@@ -81,13 +86,24 @@ public static class Program
         chatMessages.AddUserMessage("My name is Gian Maria");
         chatMessages.AddAssistantMessage("Hi Gian Maria how can I help you?");
         chatMessages.AddUserMessage("Tell my name and repeat how can I call you!");
-        var result = await kernel.InvokeAsync<string>(
-            prompt,
-            new KernelArguments()
+        KernelArguments arguments = new KernelArguments()
+        {
+            ["messages"] = chatMessages,
+            ExecutionSettings = new Dictionary<string, PromptExecutionSettings>()
             {
-                ["messages"] = chatMessages
-            });
+                ["default"] = new OpenAIPromptExecutionSettings()
+                {
+                    MaxTokens = 200,
+                    Temperature = 0,
+                    ModelId = "gpt35",
+                }
+            }
+        };
+
+        var result = await kernel.InvokeAsync<string>(prompt, arguments);
         Console.WriteLine("Result: {0}", result);
+
+        var calls = _loggingProvider.GetLLMCalls();
     }
 
     public static async Task Ex02_c_InvokeLLMDirectly()
@@ -113,7 +129,7 @@ public static class Program
                     {
                         MaxTokens = 1000,
                         Temperature = 0,
-                        ModelId = "gpt35",
+                        ModelId = "gpt4o",
                     }
                 },
             }
@@ -136,12 +152,22 @@ public static class Program
         ka["request"] = "I'd like to know which is the nearest star from our solar system?";
         result = await kernel.InvokeAsync(chat, ka);
         AppendResult(history, result);
+        calls = _loggingProvider.GetLLMCalls();
 
         ka = new();
         ka["history"] = history.ToString();
         ka["request"] = "Do you know which is the position on hersprung russel diagram?";
-
+        ka.ExecutionSettings = new Dictionary<string, PromptExecutionSettings>()
+        {
+            ["default"] = new OpenAIPromptExecutionSettings()
+            {
+                MaxTokens = 1000,
+                Temperature = 0,
+                ModelId = "gpt35",
+            }
+        };
         result = await kernel.InvokeAsync(chat, ka);
+        calls = _loggingProvider.GetLLMCalls();
 
         Console.WriteLine("Result: {0}", result);
     }
@@ -383,7 +409,7 @@ public static class Program
         var av = new AudioVideoPlugin.AudioVideoPlugin();
         av.ExtractAudio(@"C:\temp\ssh.mp4");
 
-        var python = new PythonWrapper(@"A:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
+        var python = new PythonWrapper(@"c:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
         var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
         var result = python.Execute(script, @"C:\temp\ssh.wav");
         Console.WriteLine(result);
