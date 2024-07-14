@@ -8,8 +8,10 @@ using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,8 +29,9 @@ public static class Program
         //await Ex02a_InvokeOpenaiClient();
         //await Ex02_b_InvokeLLMDirectly();
         //await Ex02_c_InvokeLLMDirectly();
+        await Ex02_c_InvokeLLWithTools();
 
-        await Ex03_DirectSequentialCallToExtractVideo();
+        //await Ex03_DirectSequentialCallToExtractVideo();
         //await Ex03_b_DirectSequentialCallToExtractVideo();
 
         //await Ex04_Load_function_in_builder();
@@ -171,6 +174,70 @@ public static class Program
 
         Console.WriteLine("Result: {0}", result);
     }
+
+    public static async Task Ex02_c_InvokeLLWithTools()
+    {
+        var builder = CreateBasicKernelBuilder();
+        var kernel = builder.Build();
+
+
+        var function = KernelFunctionFactory.CreateFromMethod(
+            [Description("Calculate a formula that contains standard operators")](
+                [Description("The formula, something like 4 / (5 ^ 2)")] string formula
+            ) =>
+        {
+            return $"Called with formula {formula}";
+        }, "math_formula");
+        var plugin = KernelPluginFactory.CreateFromFunctions("MyPlugin", [function]);
+        var openAIFunction = plugin.GetFunctionsMetadata().First().ToOpenAIFunction();
+
+        // Create a template for chat with settings
+        var chat = kernel.CreateFunctionFromPrompt(new PromptTemplateConfig()
+        {
+            Name = "Chat",
+            Description = "Chat with the assistant.",
+            Template = "{{$history}} User: {{$request}} Assistant: ",
+            TemplateFormat = "semantic-kernel",
+            InputVariables =
+            [
+                new() { Name = "history", Description = "The history of the conversation.", IsRequired = false, Default = "" },
+                new() { Name = "request", Description = "The user's request.", IsRequired = true }
+            ],
+            ExecutionSettings =
+            {
+                { "default", new OpenAIPromptExecutionSettings()
+                    {
+                        MaxTokens = 1000,
+                        Temperature = 0,
+                        ModelId = "gpt4o",
+                        ToolCallBehavior = ToolCallBehavior.RequireFunction(openAIFunction, false),
+                    }
+                },
+            }
+        });
+
+        StringBuilder history = new();
+        history.AppendLine("You are an assistant that help user to find answer and your name is Jarvis");
+        KernelArguments ka = new();
+        ka["history"] = history.ToString();
+        ka["request"] = "Do you know the solution of (4 + 6) / 5?";
+        var result = await kernel.InvokeAsync(chat, ka);
+
+        Console.WriteLine("Result: {0}", result.ValueType);
+        var openaiMessageContent = result.GetValue<OpenAIChatMessageContent>();
+
+        if (result is FunctionResult fre)
+        {
+            var toolCall = openaiMessageContent.GetOpenAIFunctionToolCalls().Single();
+            Console.WriteLine(
+                "Function call: {0}({1})",
+                toolCall.FunctionName,
+                string.Join(',', toolCall.Arguments.Select(a => $"{a.Key}:{a.Value}")));
+        }
+
+        Console.WriteLine("Result: {0}", result);
+    }
+
 
     private static void AppendResult(StringBuilder history, FunctionResult result)
     {
