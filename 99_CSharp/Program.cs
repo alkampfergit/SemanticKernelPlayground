@@ -1,3 +1,4 @@
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -6,6 +7,9 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Planning.Handlebars;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
+using SemanticKernelExperiments.Helper.LogHelpers;
+using SemanticKernelExperiments.plugins.Math;
+using SemanticKernelExperiments.plugins.Search;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -29,13 +33,15 @@ public static class Program
         //await Ex02a_InvokeOpenaiClient();
         //await Ex02_b_InvokeLLMDirectly();
         //await Ex02_c_InvokeLLMDirectly();
-        await Ex02_c_InvokeLLWithTools();
+        //await Ex02_c_InvokeLLWithTools();
+        //await Ex02_d_InvokeLLMDirectly_handlebar();
 
         //await Ex03_DirectSequentialCallToExtractVideo();
         //await Ex03_b_DirectSequentialCallToExtractVideo();
 
         //await Ex04_Load_function_in_builder();
         //await Ex05_basic_planner();
+        await Ex06_Use_math();
         Console.ReadLine();
     }
 
@@ -43,7 +49,17 @@ public static class Program
     {
         var builder = CreateBasicKernelBuilder();
         var kernel = builder.Build();
-        var result = await kernel.InvokePromptAsync("How are you today");
+        FunctionResult result = await kernel.InvokePromptAsync("How are you today");
+        if (result.Metadata.TryGetValue("Usage", out var usage)) 
+        {
+            if (usage is CompletionsUsage cu) 
+            {
+                Console.WriteLine("Usage total token {0}, completion tokens {1} prompt tokens {2}", cu.TotalTokens, cu.CompletionTokens, cu.PromptTokens);
+            }
+        }
+
+        var value = result.GetValue<OpenAIChatMessageContent>();
+        Console.WriteLine("Model used: {0}", value.ModelId);
         Console.WriteLine(result);
     }
 
@@ -172,6 +188,14 @@ public static class Program
         result = await kernel.InvokeAsync(chat, ka);
         calls = _loggingProvider.GetLLMCalls();
 
+        foreach (LLMCall call in calls)
+        {
+            Console.WriteLine("Url: " + call.Url);
+            Console.WriteLine("FullPrompt:\n" + call.FullRequest + "\n\n");
+            Console.WriteLine("ResponseFunctionCall: " + call.ResponseFunctionCall);
+            Console.WriteLine("Response: " + call.Response);
+        }
+
         Console.WriteLine("Result: {0}", result);
     }
 
@@ -179,7 +203,6 @@ public static class Program
     {
         var builder = CreateBasicKernelBuilder();
         var kernel = builder.Build();
-
 
         var function = KernelFunctionFactory.CreateFromMethod(
             [Description("Calculate a formula that contains standard operators")](
@@ -238,6 +261,79 @@ public static class Program
         Console.WriteLine("Result: {0}", result);
     }
 
+    public static async Task Ex02_d_InvokeLLMDirectly_handlebar()
+    {
+        var builder = CreateBasicKernelBuilder();
+        var kernel = builder.Build();
+
+        // Create a template for chat with settings
+        var chat = kernel.CreateFunctionFromPrompt(new PromptTemplateConfig()
+        {
+            Name = "TestRewrite",
+            Description = "Chat with the assistant.",
+            Template = @"system: 
+* Given the following conversation history and the users next question,rephrase the question to be a stand alone question.
+If the conversation is irrelevant or empty, just restate the original question.
+Do not add more details than necessary to the question.
+
+chat history: 
+{{#each history}}
+question: 
+{{question}}
+answer: 
+{{answer}}
+{{/each}}
+
+Follow up Input: {{ chat_input }} 
+Standalone Question:",
+            TemplateFormat = "handlebars",
+            InputVariables =
+            [
+                new() { Name = "chat_input", Description = "New question of the user", IsRequired = false, Default = "" },
+                new() { Name = "history", Description = "The history of the RAG CHAT.", IsRequired = true }
+            ],
+            ExecutionSettings =
+            {
+                { "default", new OpenAIPromptExecutionSettings()
+                    {
+                        MaxTokens = 1000,
+                        Temperature = 0,
+                        ModelId = "gpt35",
+                    }
+                },
+            }
+        },
+        promptTemplateFactory: new HandlebarsPromptTemplateFactory());
+
+        KernelArguments ka = new();
+        ka["chat_input"] = "Do you know a similar technique?";
+
+        ka["history"] = new RagChatElement[]
+        {
+            new ("Can you please explain complete mediation?", "Certainly! In the context of mediation, complete mediation refers to a situation where a mediator variable fully explains the relationship between an independent variable and a dependent variable. Without this mediator variable, no direct relationship is observed between the independent and dependent variables")
+        };
+
+        var result = await kernel.InvokeAsync(chat, ka);
+        Console.WriteLine("result: {0}", result.ToString());
+
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine($"Function {llmCall.ResponseFunctionCall} with arguments {llmCall.ResponseFunctionCallParameters}");
+        }
+    }
+
+    private class RagChatElement
+    {
+        public RagChatElement(string question, string answer)
+        {
+            Question = question;
+            Answer = answer;
+        }
+
+        public string Question { get; set; }
+        public string Answer { get; set; }
+    }
 
     private static void AppendResult(StringBuilder history, FunctionResult result)
     {
@@ -263,12 +359,12 @@ public static class Program
         Console.WriteLine("Imported {0} functions from {1}", publishingPlugin.Count(), publishingPlugin.Name);
 
         var concreteAvPlugin = new SemanticKernelExperiments.AudioVideoPlugin.AudioVideoPlugin();
-        var audioVideoPlugin = kernel.ImportPluginFromObject(concreteAvPlugin, "AudioVideoPlugin");
+        KernelPlugin audioVideoPlugin = kernel.ImportPluginFromObject(concreteAvPlugin, "AudioVideoPlugin");
         Console.WriteLine("Imported {0} functions from {1}", audioVideoPlugin.Count(), audioVideoPlugin.Name);
 
         audioVideoPlugin.TryGetFunction("ExtractAudio", out var extractAudio);
         KernelArguments args = new KernelArguments();
-        args["videofile"] = @"C:\temp\ssh.mp4";
+        args["videofile"] = @"C:\temp\sk\ssh.mp4";
         var callresult = await extractAudio.InvokeAsync(kernel, args);
         var audioFile = callresult.GetValue<string>();
 
@@ -425,6 +521,38 @@ public static class Program
         }
     }
 
+    private static async Task Ex06_Use_math()
+    {
+        var kernelBuilder = CreateBasicKernelBuilder();
+        kernelBuilder.Services.AddHttpClient();
+        kernelBuilder
+            .Plugins
+                .AddFromType<ExpressionPlugin>("ExpressionPlugin")
+                .AddFromType<DuckDuckGo>("SearchPlugin");
+        var kernel = kernelBuilder.Build();
+
+        OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+        {
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            Temperature = 0,
+        };
+
+        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      "please tells me the result of 3 * (1 + 5 * 5)",
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        var result = await chatCompletionService.GetChatMessageContentsAsync(
+              "I need to know which is older, Michael Douglas or Harrison ford",
+              executionSettings: openAIPromptExecutionSettings,
+              kernel: kernel);
+        Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        //Console.WriteLine(result.ToString());
+    }
+
     private static void DumpTextSection(string text)
     {
         int totalWidth = 80;
@@ -476,7 +604,7 @@ public static class Program
         var av = new AudioVideoPlugin.AudioVideoPlugin();
         av.ExtractAudio(@"C:\temp\ssh.mp4");
 
-        var python = new PythonWrapper(@"c:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
+        var python = new PythonWrapper(@"A:\Develop\github\ai-notebooks\python\pywrapper\Scripts\python.exe");
         var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
         var result = python.Execute(script, @"C:\temp\ssh.wav");
         Console.WriteLine(result);

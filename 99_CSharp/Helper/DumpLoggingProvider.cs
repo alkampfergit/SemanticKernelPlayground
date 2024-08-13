@@ -134,6 +134,11 @@ namespace SemanticKernelExperiments.Helper
         {
             public async ValueTask<object?> LogRequestStartAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
             {
+                if (request.Content == null) 
+                {
+                    //nothing to do.
+                    return default;
+                }
                 var requestContent = await request.Content!.ReadAsStringAsync(cancellationToken);
                 StringBuilder sb = new();
 

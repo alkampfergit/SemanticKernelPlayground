@@ -11,10 +11,10 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\config.json">
+    <None Update="plugins\VideoTimelineCreator\config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="plugins\PublishingPlugin\VideoTimelineCreator\skprompt.txt">
+    <None Update="plugins\VideoTimelineCreator\skprompt.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="python/transcript_timeline.py">
@@ -26,6 +26,8 @@
   </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="CoreCLR-NCalc" Version="3.1.253" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.62" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.6.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
