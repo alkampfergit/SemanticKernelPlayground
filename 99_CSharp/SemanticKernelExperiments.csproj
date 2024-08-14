@@ -29,15 +29,15 @@
       <PackageReference Include="CoreCLR-NCalc" Version="3.1.253" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.62" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.6.0" />
+      <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.8.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
-      <PackageReference Include="Microsoft.SemanticKernel" Version="1.14.1" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.17.1" />
       <PackageReference Include="Microsoft.SemanticKernel.Planners.Handlebars" Version="1.14.1-preview" />
-      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.14.1" />
-      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.14.1" />
-      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.14.1" />
-      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.14.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.17.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.17.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.17.1" />
+      <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.17.1" />
     </ItemGroup>
 
   </Project>

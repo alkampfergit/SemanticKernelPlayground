@@ -56,6 +56,6 @@ internal class DuckDuckGo
                 }
             }
         }
-        return result;
+        return result.Take(5).ToList();
     }
 }

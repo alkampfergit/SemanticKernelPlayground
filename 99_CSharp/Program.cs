@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -50,9 +49,9 @@ public static class Program
         var builder = CreateBasicKernelBuilder();
         var kernel = builder.Build();
         FunctionResult result = await kernel.InvokePromptAsync("How are you today");
-        if (result.Metadata.TryGetValue("Usage", out var usage)) 
+        if (result.Metadata.TryGetValue("Usage", out var usage))
         {
-            if (usage is CompletionsUsage cu) 
+            if (usage is CompletionsUsage cu)
             {
                 Console.WriteLine("Usage total token {0}, completion tokens {1} prompt tokens {2}", cu.TotalTokens, cu.CompletionTokens, cu.PromptTokens);
             }
@@ -205,7 +204,7 @@ public static class Program
         var kernel = builder.Build();
 
         var function = KernelFunctionFactory.CreateFromMethod(
-            [Description("Calculate a formula that contains standard operators")](
+            [Description("Calculate a formula that contains standard operators")] (
                 [Description("The formula, something like 4 / (5 ^ 2)")] string formula
             ) =>
         {
@@ -528,6 +527,7 @@ Standalone Question:",
         kernelBuilder
             .Plugins
                 .AddFromType<ExpressionPlugin>("ExpressionPlugin")
+                .AddFromType<Navigator>("NavigatorPlugin")
                 .AddFromType<DuckDuckGo>("SearchPlugin");
         var kernel = kernelBuilder.Build();
 
@@ -545,7 +545,7 @@ Standalone Question:",
         //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
 
         var result = await chatCompletionService.GetChatMessageContentsAsync(
-              "I need to know which is older, Michael Douglas or Harrison ford",
+              "How can I configure Semantic Kernel in an Asp.net application?",
               executionSettings: openAIPromptExecutionSettings,
               kernel: kernel);
         Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
@@ -573,8 +573,17 @@ Standalone Question:",
             .AddProvider(_loggingProvider)
         );
 
-        kernelBuilder.Services.ConfigureHttpClientDefaults(c => c
-            .AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>())));
+        kernelBuilder.Services.ConfigureHttpClientDefaults(c =>
+        {
+            c.AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>()));
+            c.AddStandardResilienceHandler(options =>
+            {
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(90);
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
+                // Configure standard resilience options here
+            });
+        });
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
             "GPT35_2",
