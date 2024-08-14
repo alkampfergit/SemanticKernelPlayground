@@ -9,6 +9,7 @@ using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
 using SemanticKernelExperiments.Helper.LogHelpers;
 using SemanticKernelExperiments.plugins.Math;
+using SemanticKernelExperiments.plugins.Python;
 using SemanticKernelExperiments.plugins.Search;
 using System;
 using System.Collections.Generic;
@@ -40,7 +41,8 @@ public static class Program
 
         //await Ex04_Load_function_in_builder();
         //await Ex05_basic_planner();
-        await Ex06_Use_math();
+        //await Ex06_Use_math();
+        await Ex07_Use_python();
         Console.ReadLine();
     }
 
@@ -538,17 +540,74 @@ Standalone Question:",
         };
 
         var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        var result = await chatCompletionService.GetChatMessageContentsAsync(
+              "please tells me the result of 3 * (1 + 5 * 5)",
+              executionSettings: openAIPromptExecutionSettings,
+              kernel: kernel);
+        Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
         //var result = await chatCompletionService.GetChatMessageContentsAsync(
-        //      "please tells me the result of 3 * (1 + 5 * 5)",
+        //      "How can I configure Semantic Kernel in an Asp.net application?",
         //      executionSettings: openAIPromptExecutionSettings,
         //      kernel: kernel);
         //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
 
-        var result = await chatCompletionService.GetChatMessageContentsAsync(
-              "How can I configure Semantic Kernel in an Asp.net application?",
-              executionSettings: openAIPromptExecutionSettings,
-              kernel: kernel);
-        Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+        //Console.WriteLine(result.ToString());
+    }
+
+    private static async Task Ex07_Use_python()
+    {
+        var kernelBuilder = CreateBasicKernelBuilder();
+        kernelBuilder.Services.AddHttpClient();
+        PythonExecutorConfiguration pythonExecutorConfiguration = new()
+        {
+            PythonLocation = @"A:\Develop\github\ai-notebooks\python\pywrapper\Scripts\python.exe"
+        };
+        kernelBuilder.Services.AddSingleton(pythonExecutorConfiguration);
+        kernelBuilder
+            .Plugins
+                .AddFromType<PythonExecutor>("PythonExecutor");
+        var kernel = kernelBuilder.Build();
+
+        OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+        {
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            Temperature = 0,
+            MaxTokens = 4096
+        };
+
+        KernelArguments arguments = new KernelArguments()
+        {
+            ExecutionSettings = new Dictionary<string, PromptExecutionSettings>()
+            {
+                ["default"] = openAIPromptExecutionSettings
+            }
+        };
+
+        //ChatHistory history = new();
+        //history.AddSystemMessage("You will answer question of the user, if you need to use a python script remember that the script will return output from print statement");
+
+        //var result = await kernel.InvokePromptAsync<string>("I need to know the first 20 prime numbers", arguments);
+        var result = await kernel.InvokePromptAsync<string>("I need to know what is contained in file S:\\Downloads\\Project-Management-Sample-Data.xlsx", arguments);
+        Console.WriteLine(result.ToString());
+
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine(llmCall.Dump());
+        }
+        //var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      "I need to know the first 20 prime numbers, use a python program to calculate them",
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      "How can I configure Semantic Kernel in an Asp.net application?",
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
 
         //Console.WriteLine(result.ToString());
     }
@@ -578,8 +637,8 @@ Standalone Question:",
             c.AddLogger(s => _loggingProvider.CreateHttpRequestBodyLogger(s.GetRequiredService<ILogger<DumpLoggingProvider>>()));
             c.AddStandardResilienceHandler(options =>
             {
-                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(90);
-                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(45);
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(15);
                 options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
                 // Configure standard resilience options here
             });
