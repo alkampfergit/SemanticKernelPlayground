@@ -222,6 +222,21 @@ internal class DotnetCommandExecutor
             }
         }
 
+        //iterate again in projects, if a project is contains test it must reference all other project
+        foreach (var project in projects)
+        {
+            if (project.ProjectName.Contains("test", System.StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var otherProject in projects)
+                {
+                    if (otherProject.ProjectName != project.ProjectName)
+                    {
+                        await AddProjectReference(project.ProjectName, otherProject.ProjectName);
+                    }
+                }
+            }
+        }
+
         return "created";
     }
 }

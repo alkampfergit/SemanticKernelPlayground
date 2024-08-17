@@ -675,7 +675,7 @@ Then generate a test project with test classes written in xunit for the above tw
 Proceed in step, first of all generate a detailed plan for everything you need to do, then use the tool to actually generate the code.
 Create solution project and nuget references for each project in a single call to create_solution_structure plugin.
 Finally add the actual class code. 
-Do not generate a console app.", arguments);
+Do not generate a console app. When you encouter the first error you will stop telling the user the error.", arguments);
 
         Console.WriteLine(result.ToString());
 
