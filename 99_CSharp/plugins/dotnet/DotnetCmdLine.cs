@@ -199,4 +199,39 @@ internal class DotnetCommandExecutor
         _logger.LogTrace("Executing command: {Command} {Arguments}", DotnetCommand, arguments);
         return await _processHelper.InvokeProcessAsync(DotnetCommand, arguments);
     }
+
+    [KernelFunction("create_solution_structure")]
+    [Description("Create an entire solution structure.")]
+    [return: Description("nothing interesting.")]
+    public async Task<string> CreateSolutionStructure(
+       [Description("Name of the solution")] string solutionName,
+       [Description("List of the projects that are part of the solution.")] ProjectInfo[] projects)
+    {
+        await CreateSolution(solutionName);
+        var realSolutionName = $"{solutionName}.sln";
+        foreach (var project in projects)
+        {
+            await CreateNewClassLibrary(project.ProjectName);
+            await AddProjectToSolution(realSolutionName, project.ProjectName);
+            if (project.NugetPackages != null)
+            {
+                foreach (var nugetPackage in project.NugetPackages)
+                {
+                    await AddPackage(project.ProjectName, nugetPackage);
+                }
+            }
+        }
+
+        return "created";
+    }
+}
+
+[Description("Information about a project.")]
+public class ProjectInfo 
+{
+    [Description("Name of the project")]
+    public string ProjectName { get; set; }
+
+    [Description("List of all nuget packages we need to install with the project.")]
+    public string[] NugetPackages { get; set; }
 }

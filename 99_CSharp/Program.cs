@@ -655,6 +655,17 @@ Standalone Question:",
         };
 
         //var result = await kernel.InvokePromptAsync<string>("I need to know the first 20 prime numbers", arguments);
+        //        var result = await kernel.InvokePromptAsync<string>(@"Generate a solution in C# that contains a project called EncryptorHelper with the following classes
+        //AesKey: a simple wrapper around an AES key. This class should be able to be serialized to and from a file.
+        //FileEncryptor: a class that allows encrypting a file given an AES key and a file, it will generate another file with the .encrypted extension
+
+        //Then generate a test project with test classes written in xunit for the above two class.
+
+        //Proceed in step, first of all generate a detailed plan for everything you need to do, then use the tool to actually generate the code.
+        //Generates solution, then projects, then add project to the solution then make all test projects reference tested project, finally add the actual code. 
+        //Remember to list all the nuget packages to use and add to the corresponding project.
+        //Do not generate a console app.", arguments);
+
         var result = await kernel.InvokePromptAsync<string>(@"Generate a solution in C# that contains a project called EncryptorHelper with the following classes
 AesKey: a simple wrapper around an AES key. This class should be able to be serialized to and from a file.
 FileEncryptor: a class that allows encrypting a file given an AES key and a file, it will generate another file with the .encrypted extension
@@ -662,8 +673,8 @@ FileEncryptor: a class that allows encrypting a file given an AES key and a file
 Then generate a test project with test classes written in xunit for the above two class.
 
 Proceed in step, first of all generate a detailed plan for everything you need to do, then use the tool to actually generate the code.
-Generates solution, then projects, then add project to the solution then make all test projects reference tested project, finally add the actual code. 
-Remember to list all the nuget packages to use and add to the corresponding project.
+Create solution project and nuget references for each project in a single call to create_solution_structure plugin.
+Finally add the actual class code. 
 Do not generate a console app.", arguments);
 
         Console.WriteLine(result.ToString());
