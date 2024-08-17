@@ -8,6 +8,8 @@ using Microsoft.SemanticKernel.Planning.Handlebars;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelExperiments.Helper;
 using SemanticKernelExperiments.Helper.LogHelpers;
+using SemanticKernelExperiments.plugins.dotnet;
+using SemanticKernelExperiments.plugins.FileSystem;
 using SemanticKernelExperiments.plugins.Math;
 using SemanticKernelExperiments.plugins.Python;
 using SemanticKernelExperiments.plugins.Search;
@@ -18,6 +20,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static SemanticKernelExperiments.plugins.FileSystem.FileSystemPlugin;
 
 namespace SemanticKernelExperiments;
 
@@ -42,7 +45,8 @@ public static class Program
         //await Ex04_Load_function_in_builder();
         //await Ex05_basic_planner();
         //await Ex06_Use_math();
-        await Ex07_Use_python();
+        //await Ex07_Use_python();
+        await Ex08_Use_dotnet();
         Console.ReadLine();
     }
 
@@ -612,6 +616,79 @@ Standalone Question:",
         //Console.WriteLine(result.ToString());
     }
 
+    private static async Task Ex08_Use_dotnet()
+    {
+        var kernelBuilder = CreateBasicKernelBuilder();
+        kernelBuilder.Services.AddHttpClient();
+        DotnetCommandExecutorConfig dotnetCommandExecutorConfig = new()
+        {
+            WorkingDirectory = @"c:\temp\skgenerated"
+        };
+
+        FileSystemPluginConfig fileSystemPluginConfig = new()
+        {
+            BaseDirectory = @"c:\temp\skgenerated"
+        };
+        kernelBuilder.Services.AddSingleton(dotnetCommandExecutorConfig);
+        kernelBuilder.Services.AddSingleton(fileSystemPluginConfig);
+        kernelBuilder
+            .Plugins
+                .AddFromType<DotnetCommandExecutor>("DotnetCommandExecutor")
+                .AddFromType<FileSystemPlugin>("FileSystemPlugin");
+
+        var kernel = kernelBuilder.Build();
+
+        OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+        {
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            Temperature = 0,
+            MaxTokens = 4096,
+            ModelId = "gpt4omini"
+        };
+
+        KernelArguments arguments = new KernelArguments()
+        {
+            ExecutionSettings = new Dictionary<string, PromptExecutionSettings>()
+            {
+                ["default"] = openAIPromptExecutionSettings
+            }
+        };
+
+        //var result = await kernel.InvokePromptAsync<string>("I need to know the first 20 prime numbers", arguments);
+        var result = await kernel.InvokePromptAsync<string>(@"Generate a solution in C# that contains a project called EncryptorHelper with the following classes
+AesKey: a simple wrapper around an AES key. This class should be able to be serialized to and from a file.
+FileEncryptor: a class that allows encrypting a file given an AES key and a file, it will generate another file with the .encrypted extension
+
+Then generate a test project with test classes written in xunit for the above two class.
+
+Proceed in step, first of all generate a detailed plan for everything you need to do, then use the tool to actually generate the code.
+Generates solution, then projects, then add project to the solution then make all test projects reference tested project, finally add the actual code. 
+Remember to list all the nuget packages to use and add to the corresponding project.
+Do not generate a console app.", arguments);
+
+        Console.WriteLine(result.ToString());
+
+        var llmCalls = _loggingProvider.GetLLMCalls();
+        foreach (var llmCall in llmCalls)
+        {
+            Console.WriteLine(llmCall.Dump());
+        }
+        //var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      "I need to know the first 20 prime numbers, use a python program to calculate them",
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        //var result = await chatCompletionService.GetChatMessageContentsAsync(
+        //      "How can I configure Semantic Kernel in an Asp.net application?",
+        //      executionSettings: openAIPromptExecutionSettings,
+        //      kernel: kernel);
+        //Console.WriteLine("Result: {0}", result[result.Count - 1].Content);
+
+        //Console.WriteLine(result.ToString());
+    }
+
     private static void DumpTextSection(string text)
     {
         int totalWidth = 80;
@@ -657,6 +734,13 @@ Standalone Question:",
             Dotenv.Get("OPENAI_API_KEY"),
             serviceId: "default",
             modelId: "gpt4o");
+
+        kernelBuilder.Services.AddAzureOpenAIChatCompletion(
+            "gpt-4o-mini", //"GPT35_2",//"GPT42",
+            Dotenv.Get("OPENAI_SWEDEN_API_BASE"),
+            Dotenv.Get("OPENAI_SWEDEN_API_KEY"),
+            serviceId: "gpt4omini",
+            modelId: "gpt4omini");
 
         return kernelBuilder;
     }
