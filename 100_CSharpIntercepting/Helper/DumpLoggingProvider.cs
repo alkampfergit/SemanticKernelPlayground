@@ -208,7 +208,7 @@ public class DumpLoggingProvider : ILoggerProvider
             {
                 var correlationId = response.Headers.GetValues("x-ms-client-request-id").First();
                 var llmCall = DumpLoggingProvider.Instance._logger.CompleteLLMCall(correlationId, functions, responseContent);
-                if (llmCall != null)
+                if (llmCall == null)
                 {
                     return ValueTask.CompletedTask;
                 }
