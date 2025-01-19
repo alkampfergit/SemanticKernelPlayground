@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.ML.Tokenizers;
 using Microsoft.SemanticKernel;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
@@ -8,14 +9,14 @@ public class KernelInfo
 {
     private Kernel _kernel;
 
-    public KernelInfo(IKernelBuilder builder, string description)
+    public KernelInfo(IKernelBuilder builder, ModelInformation modelName)
     {
         Builder = builder;
-        Description = description;
+        ModelInformation = modelName;
     }
 
     public IKernelBuilder Builder { get; }
-    public string Description { get; }
+    public ModelInformation ModelInformation { get; }
 
     public Kernel Kernel => _kernel ??= Builder.Build();
 }
@@ -27,14 +28,12 @@ public class KernelStore
     public void AddKernel(
         string name,
         IKernelBuilder kernelBuilder,
-        string description)
+        ModelInformation modelName)
     {
         if (string.IsNullOrEmpty(name))
             throw new ArgumentNullException(nameof(name));
-        if (string.IsNullOrEmpty(description))
-            throw new ArgumentNullException(nameof(description));
 
-        _kernels[name] = new KernelInfo(kernelBuilder, description);
+        _kernels[name] = new KernelInfo(kernelBuilder, modelName);
     }
 
     public bool TryGetKernel(string name, out Kernel? kernel)
@@ -50,13 +49,23 @@ public class KernelStore
         return kernel != null;
     }
 
-    public Kernel GetKernel(string name)
+    private KernelInfo GetKernelInfo(string name)
     {
         if (!_kernels.TryGetValue(name, out var info))
         {
             throw new KeyNotFoundException($"Kernel '{name}' not found");
         }
-        return info.Kernel;
+        return info;
+    }
+
+    public Kernel GetKernel(string name)
+    {
+        return GetKernelInfo(name).Kernel;
+    }
+
+    public TiktokenTokenizer GetKernelTokenizer(string name)
+    {
+        return GetKernelInfo(name).ModelInformation.Tokenizer;
     }
 
     public void AddPlugin(string kernelName, object plugin)

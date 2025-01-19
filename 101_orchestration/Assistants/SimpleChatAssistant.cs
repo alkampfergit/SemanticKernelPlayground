@@ -1,12 +1,15 @@
-using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernel.Orchestration.Orchestrators;
 
 namespace SemanticKernel.Orchestration.Assistants;
 
+/// <summary>
+/// This is an assistant that implements a simple chat
+/// based conversation with a user.
+/// </summary>
 public class SimpleChatAssistant
 {
     private readonly IConversation _conversation;
@@ -15,25 +18,26 @@ public class SimpleChatAssistant
 
     public SimpleChatAssistant(
         string kernelName,
-        KernelStore kernelStore)
+        KernelStore kernelStore,
+        IConversation conversation = null)
     {
-        _conversation = new SimpleConversation();
+        _conversation = conversation ?? new SimpleConversation();
         _kernelName = kernelName;
         _kernelStore = kernelStore;
     }
 
-    public async Task<string> SendMessageAsync(string message)
+    public async Task<string> SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        _conversation.AddUserMessage(message);
+        await _conversation.AddUserMessageAsync(message, cancellationToken);
         
         var kernel = _kernelStore.GetKernel(_kernelName);
         
-        var chatHistory = _conversation.GetChatHistory();
+        var chatHistory = await _conversation.GetChatHistoryAsync(cancellationToken);
         var ccs = kernel.GetRequiredService<IChatCompletionService>();
-        var results = await ccs.GetChatMessageContentsAsync(chatHistory);
+        var results = await ccs.GetChatMessageContentsAsync(chatHistory, cancellationToken: cancellationToken);
         
         var result = results.Single();
-        _conversation.AddAssistantMessage(result);
+        await _conversation.AddAssistantMessageAsync(result, cancellationToken);
         
         return result.ToString()!;
     }

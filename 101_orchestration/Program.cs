@@ -11,15 +11,13 @@ public static class Program
 {
     static async Task Main(string[] args)
     {
-        var prompt = "tell me an haiku about cat and akita inu";
-        
         // Test with GPT4o
         var gpt4oBuilder = Configuration.SemanticKernelConfigurator.CreateBasicKernelBuilderGpt4o();
         // var kernelGpt4o = gpt4oBuilder.Build();
         // var answerGpt4o = await kernelGpt4o.InvokePromptAsync(prompt);
         // Console.WriteLine("GPT-4 Response:");
         // Console.WriteLine(answerGpt4o.ToString());
-        
+
         // Test with GPT4 Mini
         var gpt4MiniBuilder = Configuration.SemanticKernelConfigurator.CreateBasicKernelBuilderGpt4Mini();
         // var kernelGpt4Mini = gpt4MiniBuilder.Build();
@@ -29,11 +27,21 @@ public static class Program
 
         //now sample with the simple kernel router
         var kernelStore = new Orchestrators.KernelStore();
-        kernelStore.AddKernel("gpt4o", gpt4oBuilder, "GPT-4 OpenAI");
-        kernelStore.AddKernel("gpt4mini", gpt4MiniBuilder, "GPT-4 Mini OpenAI");
+        kernelStore.AddKernel("gpt4o", gpt4oBuilder, ModelInformation.GPT4O);
+        kernelStore.AddKernel("gpt4mini", gpt4MiniBuilder, ModelInformation.GPT4O);
 
+        //await SimpleChatExampleAsync(kernelStore);
+
+        var compressedConversation = new TokenLimitedConversation(kernelStore, "gpt4mini", 2000);
+        await SimpleChatExampleAsync(kernelStore, compressedConversation);
+    }
+
+    private static async Task SimpleChatExampleAsync(
+        KernelStore kernelStore,
+        IConversation conversation = null)
+    {
         // Start interactive chat loop
-        var assistant = new SimpleChatAssistant("gpt4mini", kernelStore);
+        var assistant = new SimpleChatAssistant("gpt4mini", kernelStore, conversation);
         while (true)
         {
             Console.Write("\nYou: ");

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -14,72 +16,66 @@ public interface IConversation
     /// object that represents the conversation history and can be passed
     /// to the basic Kernel object to interact with a LLM
     /// </summary>
-    /// <returns></returns>
-    ChatHistory GetChatHistory();
+    Task<ChatHistory> GetChatHistoryAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds a user message to the conversation
     /// </summary>
-    /// <param name="message">The message to add</param>
-    void AddUserMessage(string message);
+    Task AddUserMessageAsync(string message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds an assistant message to the conversation
     /// </summary>
-    /// <param name="message">The message to add</param>
-    void AddAssistantMessage(string message);
+    Task AddAssistantMessageAsync(string message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds an assistant message to the conversation as an object
     /// </summary>
-    /// <param name="functionResult">The object to add as message content</param>
-    void AddAssistantMessage(FunctionResult functionResult);
+    Task AddAssistantMessageAsync(FunctionResult functionResult, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// When you use the Chat interface of Semantic Kernel
-    /// you will recedive simple object results
+    /// you will receive simple object results
     /// </summary>
-    /// <param name="result"></param>
-    void AddAssistantMessage(object result);
+    Task AddAssistantMessageAsync(object result, CancellationToken cancellationToken = default);
 }
 
 public abstract class BaseConversation : IConversation
 {
-    public void AddAssistantMessage(FunctionResult functionResult)
+    public async Task AddAssistantMessageAsync(FunctionResult functionResult, CancellationToken cancellationToken = default)
     {
         var openaiResponse = functionResult.GetValue<OpenAIChatMessageContent>();
-        OnOpenaiResponse(openaiResponse);
+        await OnAddOpenaiResponseAsync(openaiResponse, cancellationToken);
     }
 
-    public void AddAssistantMessage(string message)
+    public async Task AddAssistantMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        OnAssistantMessage(message);
+        await OnAddAssistantMessageAsync(message, cancellationToken);
     }
 
-    public void AddUserMessage(string message)
+    public async Task AddUserMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        OnUserMessage(message);
+        await OnAddUserMessageAsync(message, cancellationToken);
     }
 
-    public ChatHistory GetChatHistory()
+    public async Task<ChatHistory> GetChatHistoryAsync(CancellationToken cancellationToken = default)
     {
-        return OnGetChatHistory();
+        return await OnGetChatHistoryAsync(cancellationToken);
     }
 
-    public void AddAssistantMessage(object result)
+    public async Task AddAssistantMessageAsync(object result, CancellationToken cancellationToken = default)
     {
         if (result is FunctionResult functionResult)
         {
-            // call the specific function for kernel response.
-            AddAssistantMessage(functionResult);
+            await AddAssistantMessageAsync(functionResult, cancellationToken);
         }
         else if (result is OpenAIChatMessageContent message)
         {
-            OnOpenaiResponse(message);
+            await OnAddOpenaiResponseAsync(message, cancellationToken);
         }
         else if (result is string stringResult)
         {
-            OnAssistantMessage(stringResult);
+            await OnAddAssistantMessageAsync(stringResult, cancellationToken);
         }
         else
         {
@@ -87,8 +83,8 @@ public abstract class BaseConversation : IConversation
         }
     }
 
-    protected abstract void OnOpenaiResponse(OpenAIChatMessageContent openaiResponse);
-    protected abstract void OnAssistantMessage(string message);
-    protected abstract void OnUserMessage(string message);
-    protected abstract ChatHistory OnGetChatHistory();
+    protected abstract Task OnAddOpenaiResponseAsync(OpenAIChatMessageContent openaiResponse, CancellationToken cancellationToken);
+    protected abstract Task OnAddAssistantMessageAsync(string message, CancellationToken cancellationToken);
+    protected abstract Task OnAddUserMessageAsync(string message, CancellationToken cancellationToken);
+    protected abstract Task<ChatHistory> OnGetChatHistoryAsync(CancellationToken cancellationToken);
 }

@@ -1,5 +1,7 @@
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
 
@@ -12,23 +14,25 @@ public class SimpleConversation : BaseConversation
         _chatHistory = new ChatHistory();
     }
 
-    protected override void OnOpenaiResponse(OpenAIChatMessageContent openaiResponse)
+    protected override Task OnAddOpenaiResponseAsync(OpenAIChatMessageContent openaiResponse, CancellationToken cancellationToken)
     {
-        _chatHistory.AddAssistantMessage(openaiResponse.Content!);
+        return OnAddAssistantMessageAsync(openaiResponse.Content!, cancellationToken);
     }
 
-    protected override void OnAssistantMessage(string message)
+    protected override Task OnAddAssistantMessageAsync(string message, CancellationToken cancellationToken)
     {
         _chatHistory.AddAssistantMessage(message);
+        return Task.CompletedTask;
     }
 
-    protected override void OnUserMessage(string message)
+    protected override Task OnAddUserMessageAsync(string message, CancellationToken cancellationToken)
     {
         _chatHistory.AddUserMessage(message);
+        return Task.CompletedTask;
     }
 
-    protected override ChatHistory OnGetChatHistory()
+    protected override Task<ChatHistory> OnGetChatHistoryAsync(CancellationToken cancellationToken)
     {
-        return _chatHistory;
+        return Task.FromResult(_chatHistory);
     }
 }
