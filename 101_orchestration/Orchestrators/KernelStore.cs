@@ -4,7 +4,21 @@ using Microsoft.SemanticKernel;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
 
-public record KernelInfo(IKernelBuilder Builder, string Description);
+public class KernelInfo
+{
+    private Kernel _kernel;
+
+    public KernelInfo(IKernelBuilder builder, string description)
+    {
+        Builder = builder;
+        Description = description;
+    }
+
+    public IKernelBuilder Builder { get; }
+    public string Description { get; }
+
+    public Kernel Kernel => _kernel ??= Builder.Build();
+}
 
 public class KernelStore
 {
@@ -23,17 +37,29 @@ public class KernelStore
         _kernels[name] = new KernelInfo(kernelBuilder, description);
     }
 
-    public bool TryGetKernel(string name, out KernelInfo kernel)
+    public bool TryGetKernel(string name, out Kernel? kernel)
     {
-        return _kernels.TryGetValue(name, out kernel);
+        if (_kernels.TryGetValue(name, out var info))
+        {
+            kernel = info.Kernel;
+        }
+        else
+        {
+            kernel = null;
+        }
+        return kernel != null;
     }
 
-    public IReadOnlyDictionary<string, KernelInfo> GetAllKernels()
+    public Kernel GetKernel(string name)
     {
-        return _kernels;
+        if (!_kernels.TryGetValue(name, out var info))
+        {
+            throw new KeyNotFoundException($"Kernel '{name}' not found");
+        }
+        return info.Kernel;
     }
 
-    public void AddPlugin<T>(string kernelName, object plugin)
+    public void AddPlugin(string kernelName, object plugin)
     {
         if (!_kernels.TryGetValue(kernelName, out var kernel))
             throw new KeyNotFoundException($"Kernel '{kernelName}' not found");
