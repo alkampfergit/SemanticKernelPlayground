@@ -1,7 +1,8 @@
-using System;
 using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Tests.Helpers;
 using Xunit;
+using FluentAssertions;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Tests;
 
@@ -18,8 +19,26 @@ public class VerifyBasicMockingHelpers
         var kernel = builder.Build();
 
         // Assert
-        Assert.NotNull(kernel);
+        kernel.Should().NotBeNull();
         var service = kernel.GetRequiredService<Microsoft.SemanticKernel.TextGeneration.ITextGenerationService>("gpt4o");
-        Assert.NotNull(service);
+        service.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Be_Able_To_Use_Mocked_Kernel_AskAsync()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+
+        var kernel = builder.Build();
+        
+        // Act
+        var prompt = "What is the capital of Italy?";
+        var result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("Dummy response");
     }
 }

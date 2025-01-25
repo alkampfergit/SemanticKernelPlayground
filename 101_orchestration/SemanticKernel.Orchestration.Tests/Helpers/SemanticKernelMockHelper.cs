@@ -2,13 +2,12 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.TextGeneration;
-using Moq;
 
 namespace SemanticKernel.Orchestration.Tests.Helpers;
 
 public record ServiceMocks(
-    Mock<IChatCompletionService> ChatCompletionMock,
-    Mock<ITextGenerationService> TextGenerationMock
+    MockChatCompletionService ChatCompletionMock,
+    MockTextGenerationService TextGenerationMock
 );
 
 public static class SemanticKernelMockHelper
@@ -17,11 +16,11 @@ public static class SemanticKernelMockHelper
         this IServiceCollection services,
         string? serviceId = null)
     {
-        var chatCompletionMock = new Mock<IChatCompletionService>();
-        var textGenerationMock = new Mock<ITextGenerationService>();
+        var chatCompletionMock = new MockChatCompletionService();
+        var textGenerationMock = new MockTextGenerationService();
 
-        services.AddKeyedSingleton<IChatCompletionService>(serviceId, (_, __) => chatCompletionMock.Object);
-        services.AddKeyedSingleton<ITextGenerationService>(serviceId, (_, __) => textGenerationMock.Object);
+        services.AddKeyedSingleton<IChatCompletionService>(serviceId, (_, __) => chatCompletionMock);
+        services.AddKeyedSingleton<ITextGenerationService>(serviceId, (_, __) => textGenerationMock);
 
         return new ServiceMocks(chatCompletionMock, textGenerationMock);
     }
