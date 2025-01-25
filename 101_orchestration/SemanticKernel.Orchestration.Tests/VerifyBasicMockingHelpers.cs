@@ -41,4 +41,23 @@ public class VerifyBasicMockingHelpers
         result.GetValue<string>().Should().NotBeNullOrEmpty();
         result.GetValue<string>().Should().Be("Dummy response");
     }
+
+     [Fact]
+    public async Task Should_Be_Able_To_Mock_a_response()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+        mocks.ChatCompletionMock.SetMockResponse("this is a test");
+
+        var kernel = builder.Build();
+        
+        // Act
+        var prompt = "What is the capital of Italy?";
+        var result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("this is a test");
+    }
 }
