@@ -77,6 +77,10 @@ public abstract class BaseConversation : IConversation
         {
             await OnAddAssistantMessageAsync(stringResult, cancellationToken);
         }
+        else if (result is ChatMessageContent chatMessageContent)
+        {
+            await OnAddAssistantMessageAsync(chatMessageContent.Content!, cancellationToken);
+        }
         else
         {
             throw new ArgumentException("Invalid object type for assistant message");

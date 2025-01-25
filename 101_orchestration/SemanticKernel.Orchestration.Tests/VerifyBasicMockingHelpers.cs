@@ -3,6 +3,7 @@ using SemanticKernel.Orchestration.Tests.Helpers;
 using Xunit;
 using FluentAssertions;
 using System.Threading.Tasks;
+using SemanticKernel.Orchestration.Orchestrators;
 
 namespace SemanticKernel.Orchestration.Tests;
 
@@ -59,5 +60,26 @@ public class VerifyBasicMockingHelpers
         // Assert
         result.GetValue<string>().Should().NotBeNullOrEmpty();
         result.GetValue<string>().Should().Be("this is a test");
+    }
+
+    [Fact]
+    public async Task Should_Be_Able_To_Use_Mocked_Kernel_From_Store()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+        mocks.ChatCompletionMock.SetMockResponse("response from store");
+
+        var kernelStore = new KernelStore();
+        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O);
+
+        // Act
+        var kernel = kernelStore.GetKernel("gpt4o");
+        var prompt = "What is the capital of Italy?";
+        var result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("response from store");
     }
 }
