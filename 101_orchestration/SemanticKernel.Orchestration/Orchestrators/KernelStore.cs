@@ -5,6 +5,9 @@ using Microsoft.SemanticKernel;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
 
+/// <summary>
+/// Contains information about a Kernel object of Semantic Kernel
+/// </summary>
 public class KernelInfo
 {
     private Kernel _kernel;
