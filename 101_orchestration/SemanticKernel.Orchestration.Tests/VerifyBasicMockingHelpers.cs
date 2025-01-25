@@ -4,6 +4,9 @@ using Xunit;
 using FluentAssertions;
 using System.Threading.Tasks;
 using SemanticKernel.Orchestration.Orchestrators;
+using Microsoft.SemanticKernel.ChatCompletion;
+using HandlebarsDotNet;
+using System.Linq;
 
 namespace SemanticKernel.Orchestration.Tests;
 
@@ -40,7 +43,54 @@ public class VerifyBasicMockingHelpers
 
         // Assert
         result.GetValue<string>().Should().NotBeNullOrEmpty();
-        result.GetValue<string>().Should().Be("Dummy response");
+        result.GetValue<string>().Should().Be(@"Chat history:
+system: What is the capital of Italy?
+Dummy response");
+    }
+
+       [Fact]
+    public async Task Should_Be_Able_To_Use_Mocked_append_Kernel_AskAsync()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+        mocks.ChatCompletionMock.SetChatMockedResponse("Rome!!!!!");
+        var kernel = builder.Build();
+        
+        // Act
+        var prompt = "What is the capital of Italy?";
+        var result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be(@"Chat history:
+system: What is the capital of Italy?
+Rome!!!!!");
+    }
+
+    [Fact]
+    public async Task Should_Be_Able_To_Use_Mocked_Kernel_chat_AskAsync()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+
+        var kernel = builder.Build();
+        
+        // Act
+        ChatHistory chatHistory = new();
+        chatHistory.AddSystemMessage("System");
+        chatHistory.AddUserMessage("What is the capital of Italy?");
+
+        var ccs = kernel.GetRequiredService<IChatCompletionService>();
+        var results = await ccs.GetChatMessageContentsAsync(chatHistory);    
+
+        // Assert
+        var result = results.Single();
+        result.ToString().Should().Be(@"Chat history:
+system: System
+user: What is the capital of Italy?
+Dummy response");
     }
 
      [Fact]

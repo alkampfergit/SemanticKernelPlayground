@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
@@ -9,26 +10,47 @@ namespace SemanticKernel.Orchestration.Tests.Helpers;
 
 public class MockChatCompletionService : IChatCompletionService
 {
-    private Func<ChatHistory, Task<IReadOnlyList<ChatMessageContent>>>? _chatResponseGenerator =
-        (_) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
-            AuthorRole.Assistant,
-            content: "Dummy response"
-        )]);
+    private Func<ChatHistory, Task<IReadOnlyList<ChatMessageContent>>>? _chatResponseGenerator;
+        
     private Func<ChatHistory, IAsyncEnumerable<StreamingChatMessageContent>>? _streamingResponseGenerator;
 
     private IReadOnlyDictionary<string, object?> _attributes = new Dictionary<string, object?>();
 
     public IReadOnlyDictionary<string, object?> Attributes => _attributes;
 
+    public MockChatCompletionService()
+    {
+SetChatMockedResponse("Dummy response");
+    }
+
     public void SetResponseGenerator(Func<ChatHistory, Task<IReadOnlyList<ChatMessageContent>>> generator)
     {
         _chatResponseGenerator = generator;
     }
 
+    /// <summary>
+    /// Comèletely override the response, model will return this message regardless of the 
+    /// ChatMessage input
+    /// </summary>
+    /// <param name="response"></param>
     public void SetMockResponse(string response) {
-        _chatResponseGenerator = (_) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
+        _chatResponseGenerator = 
+        (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
             AuthorRole.Assistant,
             content: response
+        )]);
+    }
+
+    /// <summary>
+    /// Will use the default responder that will dump chat message and append this message
+    /// </summary>
+    /// <param name="mockedResponse"></param>
+    internal void SetChatMockedResponse(string mockedResponse)
+    {
+        _chatResponseGenerator = 
+        (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
+            AuthorRole.Assistant,
+            content: $"Chat history:\n{FormatChatHistory(history)}\n{mockedResponse}"
         )]);
     }
 
@@ -63,5 +85,10 @@ public class MockChatCompletionService : IChatCompletionService
         }
 
         return _streamingResponseGenerator(chatHistory);
+    }
+
+    private static string FormatChatHistory(ChatHistory history)
+    {
+        return string.Join("\n", history.Select(m => $"{m.Role}: {m.Content}"));
     }
 }

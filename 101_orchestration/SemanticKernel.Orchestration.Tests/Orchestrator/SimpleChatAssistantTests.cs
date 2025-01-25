@@ -30,4 +30,39 @@ public class SimpleChatAssistantTests
         // Assert
         response.Should().Be("Hello, I'm here to help!");
     }
+
+     [Fact]
+    public async Task SimpleChatAssistant_Verify_conversation_handling()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+
+        //Seet a simple mock response
+        mocks.ChatCompletionMock.SetMockResponse("Hello, I'm here to help!");
+
+        var kernelStore = new KernelStore();
+        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O);
+
+        var assistant = new SimpleChatAssistant("gpt4o", kernelStore);
+
+        // Act
+        var response = await assistant.SendMessageAsync("Hi there!");
+
+        // Assert
+        response.Should().Be(@"Hello, I'm here to help!");
+
+        // now go on with the conversation, change the answer of the llm
+        mocks.ChatCompletionMock.SetChatMockedResponse("I'm still here to help!");
+
+        response = await assistant.SendMessageAsync("I need help!");
+
+        // Assert
+        response.Should().Be(@"Chat history:
+user: Hi there!
+assistant: Hello, I'm here to help!
+user: I need help!
+I'm still here to help!");
+
+    }
 }
