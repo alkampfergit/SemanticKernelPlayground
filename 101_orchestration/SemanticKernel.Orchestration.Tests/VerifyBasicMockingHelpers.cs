@@ -7,6 +7,9 @@ using SemanticKernel.Orchestration.Orchestrators;
 using Microsoft.SemanticKernel.ChatCompletion;
 using HandlebarsDotNet;
 using System.Linq;
+using System.Collections.Generic;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Azure.AI.OpenAI;
 
 namespace SemanticKernel.Orchestration.Tests;
 
@@ -48,7 +51,7 @@ system: What is the capital of Italy?
 Dummy response");
     }
 
-       [Fact]
+    [Fact]
     public async Task Should_Be_Able_To_Use_Mocked_append_Kernel_AskAsync()
     {
         // Arrange
@@ -112,7 +115,7 @@ Dummy response");
         result.GetValue<string>().Should().Be("this is a test");
     }
 
-      [Fact]
+    [Fact]
     public async Task Should_Be_Able_To_Mock_a_series_of_responses()
     {
         // Arrange
@@ -154,7 +157,7 @@ Dummy response");
         mocks.ChatCompletionMock.SetMockResponse("response from store");
 
         var kernelStore = new KernelStore();
-        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O);
+        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "description");
 
         // Act
         var kernel = kernelStore.GetKernel("gpt4o");
@@ -164,5 +167,46 @@ Dummy response");
         // Assert
         result.GetValue<string>().Should().NotBeNullOrEmpty();
         result.GetValue<string>().Should().Be("response from store");
+    }
+
+    [Fact]
+    public async Task Should_Be_Able_To_Mock_Tool_Calls()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+
+        var plugin = new TestPlugin();
+        builder.Plugins.AddFromObject(plugin, pluginName: "TestPlugin");
+        var kernel = builder.Build();
+        
+        // Act
+        KernelArguments ka = new();
+        ka.ExecutionSettings =  new Dictionary<string, PromptExecutionSettings>()
+        {
+            ["default"] = new OpenAIPromptExecutionSettings()
+            {
+                MaxTokens = 1000,
+                Temperature = 0,
+                ModelId = "gpt4o",
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            }
+        };
+
+        mocks.ChatCompletionMock.SetMockResponseTool(
+            pluginName: "TestPlugin",
+            methodName: "ChangeTitle",
+            arguments: "{'newTitle: 'new title'}"
+        );
+        var prompt = "I want to change task title to 'new title'";
+        var result = await kernel.InvokePromptAsync(prompt, ka);
+
+        var openaiResult = result.GetValue<OpenAIChatMessageContent>();
+        var stringResult = result.ToString(); 
+
+        // Assert
+        plugin.GetChangeTitleCallCount().Should().Be(1);
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("Task title changed to 'new title'");       
     }
 }

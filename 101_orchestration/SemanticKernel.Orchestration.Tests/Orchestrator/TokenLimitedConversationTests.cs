@@ -20,7 +20,7 @@ public class TokenLimitedConversationTests
         mocks.ChatCompletionMock.SetMockResponse("Hello, I'm here to help!");
 
         var kernelStore = new KernelStore();
-        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O);
+        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         var conversation = new TokenLimitedConversation(kernelStore, "gpt4o", 2000);
         var assistant = new SimpleChatAssistant("gpt4o", kernelStore, conversation);
@@ -45,7 +45,7 @@ public class TokenLimitedConversationTests
             "this is summary");
 
         var kernelStore = new KernelStore();
-        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O);
+        kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         // Set a very low token limit to force summarization
         var conversation = new TokenLimitedConversation(kernelStore, "gpt4o", 10);

@@ -1,8 +1,5 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.TextGeneration;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Orchestrators;
 
@@ -28,8 +25,8 @@ public static class Program
 
         //now sample with the simple kernel router
         var kernelStore = new Orchestrators.KernelStore();
-        kernelStore.AddKernel("gpt4o", gpt4oBuilder, ModelInformation.GPT4O);
-        kernelStore.AddKernel("gpt4mini", gpt4MiniBuilder, ModelInformation.GPT4O);
+        kernelStore.AddKernel("gpt4o", gpt4oBuilder, ModelInformation.GPT4O, "gpt4o based kernel");
+        kernelStore.AddKernel("gpt4mini", gpt4MiniBuilder, ModelInformation.GPT4O, "gpt4mini based kernel");
 
         //await SimpleChatExampleAsync(kernelStore);
 

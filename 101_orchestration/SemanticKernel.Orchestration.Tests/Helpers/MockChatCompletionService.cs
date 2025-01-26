@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.AI.OpenAI;
+using Fasterflect;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace SemanticKernel.Orchestration.Tests.Helpers;
 
@@ -53,6 +56,38 @@ SetChatMockedResponse("Dummy response");
             AuthorRole.Assistant,
             content: $"Chat history:\n{FormatChatHistory(history)}\n{mockedResponse}"
         )]);
+    }
+
+    internal void SetMockResponseTool(
+        string pluginName, 
+        string methodName, 
+        string arguments)
+    {
+        var toolCall = new ChatCompletionsFunctionToolCall(
+            Guid.NewGuid().ToString(),
+            $"{pluginName.ToLower()}-{methodName.ToLower()}",
+            arguments
+        );
+        var chatResponseMessage = AzureOpenAIModelFactory.ChatResponseMessage(
+            ChatRole.Assistant,
+            toolCalls: new List<ChatCompletionsToolCall>() {
+                toolCall
+            }
+        );
+
+        OpenAIChatMessageContent content = (OpenAIChatMessageContent) typeof(OpenAIChatMessageContent)
+            .CreateInstance(
+                chatResponseMessage,
+                "modelId",
+                new Dictionary<string, object?>() {
+                    ["FinishReason"] = "tool_calls"
+                }
+            );
+
+        _chatResponseGenerator = 
+            (history) => {
+                return Task.FromResult<IReadOnlyList<ChatMessageContent>>([content]);
+                };
     }
 
     public void SetStreamingResponseGenerator(Func<ChatHistory, IAsyncEnumerable<StreamingChatMessageContent>> generator)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.ML.Tokenizers;
 using Microsoft.SemanticKernel;
 
@@ -12,14 +13,18 @@ public class KernelInfo
 {
     private Kernel _kernel;
 
-    public KernelInfo(IKernelBuilder builder, ModelInformation modelName)
+    public KernelInfo(IKernelBuilder builder, ModelInformation modelName, string description, string name)
     {
         Builder = builder;
         ModelInformation = modelName;
+        Description = description;
+        Name = name;
     }
 
     public IKernelBuilder Builder { get; }
     public ModelInformation ModelInformation { get; }
+    public string Description { get; }
+    public string Name { get; }
 
     public Kernel Kernel => _kernel ??= Builder.Build();
 }
@@ -31,12 +36,13 @@ public class KernelStore
     public void AddKernel(
         string name,
         IKernelBuilder kernelBuilder,
-        ModelInformation modelName)
+        ModelInformation modelName,
+        string description)
     {
         if (string.IsNullOrEmpty(name))
             throw new ArgumentNullException(nameof(name));
 
-        _kernels[name] = new KernelInfo(kernelBuilder, modelName);
+        _kernels[name] = new KernelInfo(kernelBuilder, modelName, description, name);
     }
 
     public bool TryGetKernel(string name, out Kernel? kernel)
@@ -77,5 +83,12 @@ public class KernelStore
             throw new KeyNotFoundException($"Kernel '{kernelName}' not found");
 
         kernel.Builder.Plugins.AddFromObject(plugin);
+    }
+
+    public IEnumerable<KernelInfo> GetAvailableKernels(string excludeKernel = null)
+    {
+        return _kernels
+            .Where(k => k.Key != excludeKernel)
+            .Select(k => k.Value);
     }
 }
