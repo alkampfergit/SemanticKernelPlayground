@@ -33,11 +33,12 @@ SetChatMockedResponse("Dummy response");
     /// ChatMessage input
     /// </summary>
     /// <param name="response"></param>
-    public void SetMockResponse(string response) {
+    public void SetMockResponse(params string[] responses) {
+        int i = 0;
         _chatResponseGenerator = 
         (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
             AuthorRole.Assistant,
-            content: response
+            content: responses[(int) Math.Min(i++ , responses.Length - 1)]
         )]);
     }
 

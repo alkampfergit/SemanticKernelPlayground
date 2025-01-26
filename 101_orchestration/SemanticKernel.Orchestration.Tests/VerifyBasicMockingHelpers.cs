@@ -93,7 +93,7 @@ user: What is the capital of Italy?
 Dummy response");
     }
 
-     [Fact]
+    [Fact]
     public async Task Should_Be_Able_To_Mock_a_response()
     {
         // Arrange
@@ -110,6 +110,39 @@ Dummy response");
         // Assert
         result.GetValue<string>().Should().NotBeNullOrEmpty();
         result.GetValue<string>().Should().Be("this is a test");
+    }
+
+      [Fact]
+    public async Task Should_Be_Able_To_Mock_a_series_of_responses()
+    {
+        // Arrange
+        var builder = Kernel.CreateBuilder();
+        var mocks = builder.Services.AddMockedLLM("gpt4o");
+        mocks.ChatCompletionMock.SetMockResponse("this is a test", "This is another test");
+
+        var kernel = builder.Build();
+        
+        // Act
+        var prompt = "What is the capital of Italy?";
+        var result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("this is a test");
+
+        // Act invoke again 
+        result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("This is another test");
+
+        // Act invoke again, now responses are ended so we should get the last response
+        result = await kernel.InvokePromptAsync(prompt);
+
+        // Assert
+        result.GetValue<string>().Should().NotBeNullOrEmpty();
+        result.GetValue<string>().Should().Be("This is another test");
     }
 
     [Fact]
