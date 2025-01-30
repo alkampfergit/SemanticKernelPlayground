@@ -1,20 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Azure.AI.OpenAI;
 using Fasterflect;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Tests.Helpers;
 
 public class MockChatCompletionService : IChatCompletionService
 {
     private Func<ChatHistory, Task<IReadOnlyList<ChatMessageContent>>>? _chatResponseGenerator;
-        
+
     private Func<ChatHistory, IAsyncEnumerable<StreamingChatMessageContent>>? _streamingResponseGenerator;
 
     private IReadOnlyDictionary<string, object?> _attributes = new Dictionary<string, object?>();
@@ -23,7 +23,7 @@ public class MockChatCompletionService : IChatCompletionService
 
     public MockChatCompletionService()
     {
-SetChatMockedResponse("Dummy response");
+        SetChatMockedResponse("Dummy response");
     }
 
     public void SetResponseGenerator(Func<ChatHistory, Task<IReadOnlyList<ChatMessageContent>>> generator)
@@ -35,10 +35,11 @@ SetChatMockedResponse("Dummy response");
     /// Comèletely override the response, model will return this message regardless of the 
     /// ChatMessage input
     /// </summary>
-    /// <param name="response"></param>
-    public void SetMockResponse(params string[] responses) {
+    /// <param name="responses"></param>
+    public void SetMockResponse(params string[] responses)
+    {
         int i = 0;
-        _chatResponseGenerator = 
+        _chatResponseGenerator =
         (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
             AuthorRole.Assistant,
             content: responses[(int) Math.Min(i++ , responses.Length - 1)]
@@ -51,7 +52,7 @@ SetChatMockedResponse("Dummy response");
     /// <param name="mockedResponse"></param>
     internal void SetChatMockedResponse(string mockedResponse)
     {
-        _chatResponseGenerator = 
+        _chatResponseGenerator =
         (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([new ChatMessageContent(
             AuthorRole.Assistant,
             content: $"Chat history:\n{FormatChatHistory(history)}\n{mockedResponse}"
@@ -59,35 +60,29 @@ SetChatMockedResponse("Dummy response");
     }
 
     internal void SetMockResponseTool(
-        string pluginName, 
-        string methodName, 
-        string arguments)
+        string pluginName,
+        string methodName,
+        IDictionary<string, object?> arguments)
     {
-        var toolCall = new ChatCompletionsFunctionToolCall(
-            Guid.NewGuid().ToString(),
-            $"{pluginName.ToLower()}-{methodName.ToLower()}",
-            arguments
+        FunctionCallContent callContent = new FunctionCallContent(
+            functionName: methodName,
+            pluginName: pluginName,
+            arguments: new KernelArguments(arguments),
+            id: Guid.NewGuid().ToString()
         );
-        var chatResponseMessage = AzureOpenAIModelFactory.ChatResponseMessage(
-            ChatRole.Assistant,
-            toolCalls: new List<ChatCompletionsToolCall>() {
-                toolCall
-            }
-        );
-
-        OpenAIChatMessageContent content = (OpenAIChatMessageContent) typeof(OpenAIChatMessageContent)
-            .CreateInstance(
-                chatResponseMessage,
-                "modelId",
-                new Dictionary<string, object?>() {
-                    ["FinishReason"] = "tool_calls"
+        _chatResponseGenerator =
+            (history) => Task.FromResult<IReadOnlyList<ChatMessageContent>>([
+                new ChatMessageContent()
+                {
+                    Items =  [callContent],
+                    Role = AuthorRole.Assistant,
+                    Metadata = new Dictionary<string, object?>()
+                    {
+                        { "FunctionCall", callContent }
+                    },
+                    InnerContent = callContent,     
                 }
-            );
-
-        _chatResponseGenerator = 
-            (history) => {
-                return Task.FromResult<IReadOnlyList<ChatMessageContent>>([content]);
-                };
+            ]);
     }
 
     public void SetStreamingResponseGenerator(Func<ChatHistory, IAsyncEnumerable<StreamingChatMessageContent>> generator)

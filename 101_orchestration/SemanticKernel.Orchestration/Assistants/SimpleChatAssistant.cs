@@ -1,8 +1,8 @@
+using Microsoft.SemanticKernel.ChatCompletion;
+using SemanticKernel.Orchestration.Orchestrators;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.ChatCompletion;
-using SemanticKernel.Orchestration.Orchestrators;
 
 namespace SemanticKernel.Orchestration.Assistants;
 
@@ -29,16 +29,16 @@ public class SimpleChatAssistant
     public async Task<string> SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
         await _conversation.AddUserMessageAsync(message, cancellationToken);
-        
+
         var kernel = _kernelStore.GetKernel(_kernelName);
-        
+
         var chatHistory = await _conversation.GetChatHistoryAsync(cancellationToken);
         var ccs = kernel.GetRequiredService<IChatCompletionService>();
         var results = await ccs.GetChatMessageContentsAsync(chatHistory, cancellationToken: cancellationToken);
-        
+
         var result = results.Single();
         await _conversation.AddAssistantMessageAsync(result, cancellationToken);
-        
+
         return result.ToString()!;
     }
 }

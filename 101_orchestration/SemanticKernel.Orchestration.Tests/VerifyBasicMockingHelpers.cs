@@ -1,15 +1,13 @@
-using Microsoft.SemanticKernel;
-using SemanticKernel.Orchestration.Tests.Helpers;
-using Xunit;
 using FluentAssertions;
-using System.Threading.Tasks;
-using SemanticKernel.Orchestration.Orchestrators;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using HandlebarsDotNet;
-using System.Linq;
-using System.Collections.Generic;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Azure.AI.OpenAI;
+using SemanticKernel.Orchestration.Orchestrators;
+using SemanticKernel.Orchestration.Tests.Helpers;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace SemanticKernel.Orchestration.Tests;
 
@@ -39,7 +37,7 @@ public class VerifyBasicMockingHelpers
         var mocks = builder.Services.AddMockedLLM("gpt4o");
 
         var kernel = builder.Build();
-        
+
         // Act
         var prompt = "What is the capital of Italy?";
         var result = await kernel.InvokePromptAsync(prompt);
@@ -59,7 +57,7 @@ Dummy response");
         var mocks = builder.Services.AddMockedLLM("gpt4o");
         mocks.ChatCompletionMock.SetChatMockedResponse("Rome!!!!!");
         var kernel = builder.Build();
-        
+
         // Act
         var prompt = "What is the capital of Italy?";
         var result = await kernel.InvokePromptAsync(prompt);
@@ -79,14 +77,14 @@ Rome!!!!!");
         var mocks = builder.Services.AddMockedLLM("gpt4o");
 
         var kernel = builder.Build();
-        
+
         // Act
         ChatHistory chatHistory = new();
         chatHistory.AddSystemMessage("System");
         chatHistory.AddUserMessage("What is the capital of Italy?");
 
         var ccs = kernel.GetRequiredService<IChatCompletionService>();
-        var results = await ccs.GetChatMessageContentsAsync(chatHistory);    
+        var results = await ccs.GetChatMessageContentsAsync(chatHistory);
 
         // Assert
         var result = results.Single();
@@ -105,7 +103,7 @@ Dummy response");
         mocks.ChatCompletionMock.SetMockResponse("this is a test");
 
         var kernel = builder.Build();
-        
+
         // Act
         var prompt = "What is the capital of Italy?";
         var result = await kernel.InvokePromptAsync(prompt);
@@ -124,7 +122,7 @@ Dummy response");
         mocks.ChatCompletionMock.SetMockResponse("this is a test", "This is another test");
 
         var kernel = builder.Build();
-        
+
         // Act
         var prompt = "What is the capital of Italy?";
         var result = await kernel.InvokePromptAsync(prompt);
@@ -179,34 +177,32 @@ Dummy response");
         var plugin = new TestPlugin();
         builder.Plugins.AddFromObject(plugin, pluginName: "TestPlugin");
         var kernel = builder.Build();
-        
+
         // Act
         KernelArguments ka = new();
-        ka.ExecutionSettings =  new Dictionary<string, PromptExecutionSettings>()
+        ka.ExecutionSettings = new Dictionary<string, PromptExecutionSettings>()
         {
-            ["default"] = new OpenAIPromptExecutionSettings()
+            ["default"] = new PromptExecutionSettings()
             {
-                MaxTokens = 1000,
-                Temperature = 0,
                 ModelId = "gpt4o",
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: true)
             }
         };
 
         mocks.ChatCompletionMock.SetMockResponseTool(
             pluginName: "TestPlugin",
             methodName: "ChangeTitle",
-            arguments: "{'newTitle: 'new title'}"
+            arguments: new Dictionary<string, object>()
+            {
+                ["newTitle"] = "new title"
+            }
         );
         var prompt = "I want to change task title to 'new title'";
         var result = await kernel.InvokePromptAsync(prompt, ka);
 
-        var openaiResult = result.GetValue<OpenAIChatMessageContent>();
-        var stringResult = result.ToString(); 
-
         // Assert
         plugin.GetChangeTitleCallCount().Should().Be(1);
         result.GetValue<string>().Should().NotBeNullOrEmpty();
-        result.GetValue<string>().Should().Be("Task title changed to 'new title'");       
+        result.GetValue<string>().Should().Be("Task title changed to 'new title'");
     }
 }
