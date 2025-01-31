@@ -30,8 +30,8 @@ public class TokenUsageCounter : IChatInterceptorTool
     public Task OnChatCompletionAsync(
         IReadOnlyList<ChatMessageContent> returnValue,
         ChatHistory chatHistory,
-        PromptExecutionSettings executionSettings,
-        Kernel kernel,
+        PromptExecutionSettings? executionSettings,
+        Kernel? kernel,
         CancellationToken cancellationToken)
     {
         _callCount++;
@@ -43,17 +43,17 @@ public class TokenUsageCounter : IChatInterceptorTool
         {
             if (item is OpenAIChatMessageContent ocmc)
             {
-                if (ocmc.Metadata.TryGetValue("Usage", out var completionUsage)
-                    && completionUsage is CompletionsUsage usage)
-                {
-                    _lastTotalTokens += usage.TotalTokens;
-                    _lastPromptTokens += usage.PromptTokens;
-                    _lastCompletionTokens += usage.CompletionTokens;
+                // if (ocmc.Metadata?.TryGetValue("Usage", out var completionUsage) == true
+                //     && completionUsage is openaicom usage)
+                // {
+                //     _lastTotalTokens += usage.TotalTokens;
+                //     _lastPromptTokens += usage.PromptTokens;
+                //     _lastCompletionTokens += usage.CompletionTokens;
                     
-                    _totalTokens += usage.TotalTokens;
-                    _promptTokens += usage.PromptTokens;
-                    _completionTokens += usage.CompletionTokens;
-                }
+                //     _totalTokens += usage.TotalTokens;
+                //     _promptTokens += usage.PromptTokens;
+                //     _completionTokens += usage.CompletionTokens;
+                // }
             }
         }
         

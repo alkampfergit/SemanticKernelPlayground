@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -23,6 +24,10 @@ public static class Program
         var gpt4MiniBuilder = Configuration.SemanticKernelConfigurator
             .CreateBasicKernelBuilderGpt4Mini()
             .EnableInterception();
+
+        gpt4MiniBuilder.Services.AddTransient<IChatInterceptorTool, TokenUsageCounter>();
+        gpt4oBuilder.Services.AddTransient<IChatInterceptorTool, TokenUsageCounter>();
+
         // var kernelGpt4Mini = gpt4MiniBuilder.Build();
         // var answerGpt4Mini = await kernelGpt4Mini.InvokePromptAsync(prompt);
         // Console.WriteLine("\nGPT-4 Mini Response:");
@@ -41,10 +46,11 @@ public static class Program
 
     private static async Task SimpleChatExampleAsync(
         KernelStore kernelStore,
-        IConversation conversation = null)
+        IConversation? conversation = null)
     {
         // Start interactive chat loop
-        var tokenCounter = InterceptorManager.CreateCounter();
+
+        var tokenCounter = InterceptorManager.GetInterceptor<TokenUsageCounter>();
         var assistant = new SimpleChatAssistant("gpt4mini", kernelStore, conversation);
         while (true)
         {

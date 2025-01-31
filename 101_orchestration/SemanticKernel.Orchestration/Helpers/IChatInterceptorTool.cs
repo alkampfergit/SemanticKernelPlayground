@@ -85,7 +85,7 @@ public class InterceptorContainer : IDisposable
 public class InterceptorManager
 {
     private readonly IServiceProvider _serviceProvider;
-    private static AsyncLocal<InterceptorContainer> _currentContainer = new();
+    private static AsyncLocal<InterceptorContainer?> _currentContainer = new();
 
     public InterceptorManager(IServiceProvider serviceProvider)
     {
@@ -110,5 +110,17 @@ public class InterceptorManager
     internal static void ClearContainer()
     {
         _currentContainer.Value = null;
+    }
+
+    internal static T? GetInterceptor<T>() where T : class
+    {
+        var container = _currentContainer.Value;
+        if (container == null)
+        {
+            return null;
+        }
+
+        return container.Interceptors.OfType<T>().FirstOrDefault() 
+            ?? container.Wrappers.OfType<T>().FirstOrDefault();
     }
 }
