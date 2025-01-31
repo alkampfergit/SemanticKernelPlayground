@@ -1,12 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Scrutor;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
@@ -102,44 +98,5 @@ public static class WrapperExtensions
         }
 
         throw new NotSupportedException("The service descriptor is not supported");
-    }
-}
-
-public class IChatCompletionServiceInterceptor : IChatCompletionService
-{
-    private readonly IChatCompletionService _inner;
-
-    public IChatCompletionServiceInterceptor(
-        IChatCompletionService inner)
-    {
-        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-    }
-
-    public IReadOnlyDictionary<string, object> Attributes => _inner.Attributes;
-
-    public async Task<IReadOnlyList<ChatMessageContent>> GetChatMessageContentsAsync(
-        ChatHistory chatHistory,
-        PromptExecutionSettings executionSettings = null,
-        Kernel kernel = null,
-        CancellationToken cancellationToken = default)
-    {
-        var counter = InterceptorManager.GetActiveCounter();
-        var result = await _inner.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
-        
-        if (counter != null)
-        {
-            await counter.OnChatCompletionAsync(result, chatHistory, executionSettings, kernel, cancellationToken);
-        }
-
-        return result;
-    }
-
-    public IAsyncEnumerable<StreamingChatMessageContent> GetStreamingChatMessageContentsAsync(
-        ChatHistory chatHistory,
-        PromptExecutionSettings executionSettings = null,
-        Kernel kernel = null,
-        CancellationToken cancellationToken = default)
-    {
-        return _inner.GetStreamingChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
     }
 }
