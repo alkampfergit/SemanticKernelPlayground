@@ -25,13 +25,13 @@ public static class WrapperExtensions
         services.Add(decoratedRegistration);
         services.Remove(registeredService);
 
-        //ok we have two distinct situation, first one the other service is still not registered
-        //or the service is already registered
         services.AddSingleton<IChatCompletionService>(provider =>
         {
             var inner = provider.GetRequiredKeyedService<IChatCompletionService>(decoratedRegistration.ServiceKey);
+            var interceptors = provider.GetServices<IChatInterceptorTool>();
+            var wrappers = provider.GetServices<IChatWrappingTool>();
 
-            return new IChatCompletionServiceInterceptor(inner);
+            return new IChatCompletionServiceInterceptor(inner, interceptors, wrappers);
         });
 
         return builder;
