@@ -26,13 +26,17 @@ public static class Program
         // register the interceptors you want to use, register the
         // kernel store in the global service collection
         serviceCollection.AddTransient<IChatInterceptorTool, TokenUsageCounter>();
-        serviceCollection.AddKernelStore(
-            new Dictionary<string, IKernelBuilder>
-            {
-                {"gpt4o", gpt4oBuilder},
-                {"gpt4mini", gpt4MiniBuilder}
-            }
-        );
+        serviceCollection.AddKernelStore(new[]
+        {
+            new KernelDefinition(
+                "gpt4o", 
+                gpt4oBuilder, 
+                "GPT-4 Optimized Kernel for enhanced performance"),
+            new KernelDefinition(
+                "gpt4mini", 
+                gpt4MiniBuilder, 
+                "GPT-4 Mini Kernel for lighter workloads")
+        });
 
         // now build the provider so we can get the KernelStore and
         // configure with the handlers
@@ -54,6 +58,14 @@ public static class Program
         IConversation? conversation = null)
     {
         var tokenCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
+        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
+        {
+            { "gpt-4", (0.06m/1000, 0.06m/1000) },           // GPT-4
+            { "gpt-4-turbo", (0.04m/1000, 0.04m/1000) },     // GPT-4 Turbo
+            { "gpt-4o", (0.08m/1000, 0.08m/1000) },           // GPT-4o
+            { "gpt-4o-mini", (0.03m/1000, 0.03m/1000) }         // GPT-4o Mini
+        });
+        
         var assistant = new SimpleChatAssistant("gpt4mini", kernelStore, conversation);
         while (true)
         {
@@ -78,21 +90,8 @@ public static class Program
             var response = await assistant.SendMessageAsync(userInput);
             Console.WriteLine("\nAssistant: " + response);
             
-            Console.WriteLine("\nToken usage per model:");
-            foreach (var modelUsage in tokenCounter.ModelUsage)
-            {
-                var model = string.IsNullOrEmpty(modelUsage.Key) ? "unknown" : modelUsage.Key;
-                var usage = modelUsage.Value;
-                Console.WriteLine($"Model: {model}");
-                Console.WriteLine($"  Last call - Total: {usage.LastTotalTokens}, " +
-                                $"Prompt: {usage.LastPromptTokens}, " +
-                                $"Completion: {usage.LastCompletionTokens}");
-                Console.WriteLine($"  Cumulative - Total: {usage.TotalTokens}, " +
-                                $"Prompt: {usage.PromptTokens}, " +
-                                $"Completion: {usage.CompletionTokens}");
-            }
-            
-            Console.WriteLine($"\nTotal calls: {tokenCounter.CallCount}");
+            var usageReport = usagePrinter.GetUsageReport();
+            Console.WriteLine(usageReport.FormattedReport);
         }
     }
 }

@@ -6,26 +6,32 @@ using SemanticKernel.Orchestration.Assistants;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
 
+public record KernelDefinition(string Name, IKernelBuilder Builder, string Description);
+
 public static class DependencyInjection
 {
     /// <summary>
     /// Add a kernel store configured with a list of 
-    /// kernel builder
+    /// kernel definitions
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="kernelBuilders"></param>
+    /// <param name="kernelDefinitions"></param>
     /// <returns></returns>
     public static IServiceCollection AddKernelStore(
         this IServiceCollection services,
-        Dictionary<string, IKernelBuilder> kernelBuilders)
+        IEnumerable<KernelDefinition> kernelDefinitions)
     {
         services.AddSingleton(sp =>
         {
             var kernelStore = new KernelStore(sp);
 
-            foreach (var (kernelName, kernelBuilder) in kernelBuilders)
+            foreach (var definition in kernelDefinitions)
             {
-                kernelStore.AddKernel(kernelName, kernelBuilder, ModelInformation.GPT4O, $"{kernelName} based kernel");
+                kernelStore.AddKernel(
+                    definition.Name, 
+                    definition.Builder, 
+                    ModelInformation.GPT4O, 
+                    definition.Description);
             }
             
             kernelStore.EnableInterception();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,9 +41,26 @@ public class TokenUsageCounter : IChatInterceptorTool
     {
         if (message.InnerContent is OpenAI.Chat.ChatCompletion chatCompletion)
         {
-            return chatCompletion.Model;
+            return CleanModelName(chatCompletion.Model);
         }
         return string.Empty;
+    }
+
+    private string CleanModelName(string modelName)
+    {
+        if (string.IsNullOrEmpty(modelName)) return string.Empty;
+        
+        if (modelName.Length >= 10)
+        {
+            string lastTenChars = modelName.Substring(modelName.Length - 10);
+            // Check if the last 10 characters match YYYY-MM-DD pattern
+            // using standard datetime try parse
+            if (DateTime.TryParse(lastTenChars, out _))
+            {
+                return modelName.Substring(0, modelName.Length - 11);
+            }
+        }
+        return modelName;
     }
 
     public Task OnChatCompletionAsync(
