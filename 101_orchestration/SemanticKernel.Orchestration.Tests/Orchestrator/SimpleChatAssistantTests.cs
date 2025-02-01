@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -19,7 +20,9 @@ public class SimpleChatAssistantTests
         var mocks = builder.Services.AddMockedLLM("gpt4o");
         mocks.ChatCompletionMock.SetMockResponse("Hello, I'm here to help!");
 
-        var kernelStore = new KernelStore();
+        IServiceCollection serviceDescriptors = new ServiceCollection();
+        var serviceProvider = serviceDescriptors.BuildServiceProvider();
+        var kernelStore = new KernelStore(serviceProvider);
         kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         var assistant = new SimpleChatAssistant("gpt4o", kernelStore);
@@ -41,7 +44,9 @@ public class SimpleChatAssistantTests
         //Seet a simple mock response
         mocks.ChatCompletionMock.SetMockResponse("Hello, I'm here to help!");
 
-        var kernelStore = new KernelStore();
+        IServiceCollection serviceDescriptors = new ServiceCollection();
+        var serviceProvider = serviceDescriptors.BuildServiceProvider();
+        var kernelStore = new KernelStore(serviceProvider);
         kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         var assistant = new SimpleChatAssistant("gpt4o", kernelStore);

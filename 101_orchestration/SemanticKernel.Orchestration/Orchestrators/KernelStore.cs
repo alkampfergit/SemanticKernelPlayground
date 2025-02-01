@@ -38,8 +38,8 @@ public class KernelStore
     private readonly IServiceProvider _serviceProvider;
     private static AsyncLocal<InterceptorContainer?> _currentContainer = new();
 
-public KernelStore(IServiceProvider serviceProvider)
-{
+    public KernelStore(IServiceProvider serviceProvider)
+    {
         _serviceProvider = serviceProvider;
     }
 
@@ -146,7 +146,7 @@ public KernelStore(IServiceProvider serviceProvider)
     {
         var interceptors = _serviceProvider.GetServices<IChatInterceptorTool>().ToArray();
         var wrappers = _serviceProvider.GetServices<IChatWrappingTool>().ToArray();
-        
+
         var container = new InterceptorContainer(interceptors, wrappers);
         _currentContainer.Value = container;
         return container;
@@ -170,7 +170,7 @@ public KernelStore(IServiceProvider serviceProvider)
             return null;
         }
 
-        return container.Interceptors.OfType<T>().FirstOrDefault() 
+        return container.Interceptors.OfType<T>().FirstOrDefault()
             ?? container.Wrappers.OfType<T>().FirstOrDefault();
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -18,8 +19,10 @@ public class TokenLimitedConversationTests
         var builder = Kernel.CreateBuilder();
         var mocks = builder.Services.AddMockedLLM("gpt4o");
         mocks.ChatCompletionMock.SetMockResponse("Hello, I'm here to help!");
-
-        var kernelStore = new KernelStore();
+        
+        IServiceCollection serviceDescriptors = new ServiceCollection();
+        var serviceProvider = serviceDescriptors.BuildServiceProvider();
+        var kernelStore = new KernelStore(serviceProvider);
         kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         var conversation = new TokenLimitedConversation(kernelStore, "gpt4o", 2000);
@@ -44,7 +47,9 @@ public class TokenLimitedConversationTests
             "Here is a very long response that will consume tokens",
             "this is summary");
 
-        var kernelStore = new KernelStore();
+        IServiceCollection serviceDescriptors = new ServiceCollection();
+        var serviceProvider = serviceDescriptors.BuildServiceProvider();
+        var kernelStore = new KernelStore(serviceProvider);
         kernelStore.AddKernel("gpt4o", builder, ModelInformation.GPT4O, "default");
 
         // Set a very low token limit to force summarization
