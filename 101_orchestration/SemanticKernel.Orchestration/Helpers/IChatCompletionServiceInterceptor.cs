@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using SemanticKernel.Orchestration.Orchestrators;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
@@ -25,7 +26,7 @@ public class IChatCompletionServiceInterceptor : IChatCompletionService
         Kernel? kernel = null,
         CancellationToken cancellationToken = default)
     {
-        var container = InterceptorManager.GetActiveContainer();
+        var container = KernelStore.GetActiveContainer();
         if (container != null)
         {
             // Check all wrappers first

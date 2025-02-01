@@ -4,8 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
@@ -77,50 +75,5 @@ public class InterceptorContainer : IDisposable
                 disposableWrapper.Dispose();
             }
         }
-
-        InterceptorManager.ClearContainer();
-    }
-}
-
-public class InterceptorManager
-{
-    private readonly IServiceProvider _serviceProvider;
-    private static AsyncLocal<InterceptorContainer?> _currentContainer = new();
-
-    public InterceptorManager(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
-    public InterceptorContainer StartContainerScope()
-    {
-        var interceptors = _serviceProvider.GetServices<IChatInterceptorTool>().ToArray();
-        var wrappers = _serviceProvider.GetServices<IChatWrappingTool>().ToArray();
-        
-        var container = new InterceptorContainer(interceptors, wrappers);
-        _currentContainer.Value = container;
-        return container;
-    }
-
-    public static InterceptorContainer? GetActiveContainer()
-    {
-        return _currentContainer.Value;
-    }
-
-    internal static void ClearContainer()
-    {
-        _currentContainer.Value = null;
-    }
-
-    internal static T? GetInterceptor<T>() where T : class
-    {
-        var container = _currentContainer.Value;
-        if (container == null)
-        {
-            return null;
-        }
-
-        return container.Interceptors.OfType<T>().FirstOrDefault() 
-            ?? container.Wrappers.OfType<T>().FirstOrDefault();
     }
 }

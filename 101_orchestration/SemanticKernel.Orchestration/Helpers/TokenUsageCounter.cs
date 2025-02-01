@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -43,17 +41,17 @@ public class TokenUsageCounter : IChatInterceptorTool
         {
             if (item is OpenAIChatMessageContent ocmc)
             {
-                // if (ocmc.Metadata?.TryGetValue("Usage", out var completionUsage) == true
-                //     && completionUsage is openaicom usage)
-                // {
-                //     _lastTotalTokens += usage.TotalTokens;
-                //     _lastPromptTokens += usage.PromptTokens;
-                //     _lastCompletionTokens += usage.CompletionTokens;
+                if (ocmc.Metadata?.TryGetValue("Usage", out var completionUsage) == true
+                    && completionUsage is OpenAI.Chat.ChatTokenUsage usage)
+                {
+                    _lastTotalTokens += usage.TotalTokenCount;
+                    _lastPromptTokens += usage.InputTokenCount;
+                    _lastCompletionTokens += usage.OutputTokenCount;
                     
-                //     _totalTokens += usage.TotalTokens;
-                //     _promptTokens += usage.PromptTokens;
-                //     _completionTokens += usage.CompletionTokens;
-                // }
+                    _totalTokens += usage.TotalTokenCount;
+                    _promptTokens += usage.InputTokenCount;
+                    _completionTokens += usage.OutputTokenCount;
+                }
             }
         }
         

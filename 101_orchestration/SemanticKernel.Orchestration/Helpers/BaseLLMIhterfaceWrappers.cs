@@ -34,8 +34,6 @@ public static class WrapperExtensions
             return new IChatCompletionServiceInterceptor(inner);
         });
 
-        services.AddSingleton<InterceptorManager>();
-
         return builder;
     }
 
@@ -43,6 +41,13 @@ public static class WrapperExtensions
         where T : class, IChatInterceptorTool
     {
         services.AddTransient<IChatInterceptorTool, T>();
+        return services;
+    }
+
+    public static IServiceCollection WithWrapperTransient<T>(this IServiceCollection services)
+        where T : class, IChatWrappingTool
+    {
+        services.AddTransient<IChatWrappingTool, T>();
         return services;
     }
 
