@@ -19,7 +19,7 @@ public class SimpleChatAssistant
     public SimpleChatAssistant(
         string kernelName,
         KernelStore kernelStore,
-        IConversation conversation = null)
+        IConversation? conversation = null)
     {
         _conversation = conversation ?? new SimpleConversation();
         _kernelName = kernelName;

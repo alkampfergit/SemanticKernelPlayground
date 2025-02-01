@@ -34,6 +34,8 @@ public static class WrapperExtensions
             return new IChatCompletionServiceInterceptor(inner);
         });
 
+        services.AddSingleton<InterceptorManager>();
+
         return builder;
     }
 

@@ -92,7 +92,7 @@ public class InterceptorManager
         _serviceProvider = serviceProvider;
     }
 
-    public InterceptorContainer CreateContainer()
+    public InterceptorContainer StartContainerScope()
     {
         var interceptors = _serviceProvider.GetServices<IChatInterceptorTool>().ToArray();
         var wrappers = _serviceProvider.GetServices<IChatWrappingTool>().ToArray();
