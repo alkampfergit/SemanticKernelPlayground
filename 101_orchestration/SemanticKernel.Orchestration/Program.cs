@@ -37,7 +37,6 @@ public static class Program
         // now build the provider so we can get the KernelStore and
         // configure with the handlers
         var serviceProvider = serviceCollection.BuildServiceProvider();
-
         var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
 
         //await SimpleChatExampleAsync(kernelStore);
@@ -54,8 +53,6 @@ public static class Program
         KernelStore kernelStore,
         IConversation? conversation = null)
     {
-        // Start interactive chat loop
-
         var tokenCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
         var assistant = new SimpleChatAssistant("gpt4mini", kernelStore, conversation);
         while (true)
@@ -80,13 +77,22 @@ public static class Program
 
             var response = await assistant.SendMessageAsync(userInput);
             Console.WriteLine("\nAssistant: " + response);
-            Console.WriteLine($"\nLast call stats - Total: {tokenCounter.LastTotalTokens}, " +
-                            $"Prompt: {tokenCounter.LastPromptTokens}, " +
-                            $"Completion: {tokenCounter.LastCompletionTokens}");
-            Console.WriteLine($"Cumulative stats after {tokenCounter.CallCount} calls - " +
-                            $"Total: {tokenCounter.TotalTokens}, " +
-                            $"Prompt: {tokenCounter.PromptTokens}, " +
-                            $"Completion: {tokenCounter.CompletionTokens}");
+            
+            Console.WriteLine("\nToken usage per model:");
+            foreach (var modelUsage in tokenCounter.ModelUsage)
+            {
+                var model = string.IsNullOrEmpty(modelUsage.Key) ? "unknown" : modelUsage.Key;
+                var usage = modelUsage.Value;
+                Console.WriteLine($"Model: {model}");
+                Console.WriteLine($"  Last call - Total: {usage.LastTotalTokens}, " +
+                                $"Prompt: {usage.LastPromptTokens}, " +
+                                $"Completion: {usage.LastCompletionTokens}");
+                Console.WriteLine($"  Cumulative - Total: {usage.TotalTokens}, " +
+                                $"Prompt: {usage.PromptTokens}, " +
+                                $"Completion: {usage.CompletionTokens}");
+            }
+            
+            Console.WriteLine($"\nTotal calls: {tokenCounter.CallCount}");
+        }
     }
-}
 }

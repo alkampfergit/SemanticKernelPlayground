@@ -7,23 +7,43 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
+public class ModelTokenUsage
+{
+    public int TotalTokens { get; private set; }
+    public int PromptTokens { get; private set; }
+    public int CompletionTokens { get; private set; }
+    public int LastTotalTokens { get; private set; }
+    public int LastPromptTokens { get; private set; }
+    public int LastCompletionTokens { get; private set; }
+
+    internal void AddUsage(OpenAI.Chat.ChatTokenUsage usage)
+    {
+        LastTotalTokens = usage.TotalTokenCount;
+        LastPromptTokens = usage.InputTokenCount;
+        LastCompletionTokens = usage.OutputTokenCount;
+
+        TotalTokens += usage.TotalTokenCount;
+        PromptTokens += usage.InputTokenCount;
+        CompletionTokens += usage.OutputTokenCount;
+    }
+}
+
 public class TokenUsageCounter : IChatInterceptorTool
 {
-    private int _totalTokens = 0;
-    private int _promptTokens = 0;
-    private int _completionTokens = 0;
+    private readonly Dictionary<string, ModelTokenUsage> _modelUsage = new();
     private int _callCount = 0;
-    private int _lastTotalTokens = 0;
-    private int _lastPromptTokens = 0;
-    private int _lastCompletionTokens = 0;
     
-    public int TotalTokens => _totalTokens;
-    public int PromptTokens => _promptTokens;
-    public int CompletionTokens => _completionTokens;
     public int CallCount => _callCount;
-    public int LastTotalTokens => _lastTotalTokens;
-    public int LastPromptTokens => _lastPromptTokens;
-    public int LastCompletionTokens => _lastCompletionTokens;
+    public IReadOnlyDictionary<string, ModelTokenUsage> ModelUsage => _modelUsage;
+
+    private string GetModelName(OpenAIChatMessageContent message)
+    {
+        if (message.InnerContent is OpenAI.Chat.ChatCompletion chatCompletion)
+        {
+            return chatCompletion.Model;
+        }
+        return string.Empty;
+    }
 
     public Task OnChatCompletionAsync(
         IReadOnlyList<ChatMessageContent> returnValue,
@@ -33,9 +53,6 @@ public class TokenUsageCounter : IChatInterceptorTool
         CancellationToken cancellationToken)
     {
         _callCount++;
-        _lastTotalTokens = 0;
-        _lastPromptTokens = 0;
-        _lastCompletionTokens = 0;
 
         foreach (var item in returnValue)
         {
@@ -44,13 +61,14 @@ public class TokenUsageCounter : IChatInterceptorTool
                 if (ocmc.Metadata?.TryGetValue("Usage", out var completionUsage) == true
                     && completionUsage is OpenAI.Chat.ChatTokenUsage usage)
                 {
-                    _lastTotalTokens += usage.TotalTokenCount;
-                    _lastPromptTokens += usage.InputTokenCount;
-                    _lastCompletionTokens += usage.OutputTokenCount;
+                    string modelName = GetModelName(ocmc);
                     
-                    _totalTokens += usage.TotalTokenCount;
-                    _promptTokens += usage.InputTokenCount;
-                    _completionTokens += usage.OutputTokenCount;
+                    if (!_modelUsage.ContainsKey(modelName))
+                    {
+                        _modelUsage[modelName] = new ModelTokenUsage();
+                    }
+
+                    _modelUsage[modelName].AddUsage(usage);
                 }
             }
         }
