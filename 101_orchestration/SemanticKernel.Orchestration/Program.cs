@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SemanticKernel.Orchestration.Assistants;
+using SemanticKernel.Orchestration.Assistants.BaseAssistants;
 using SemanticKernel.Orchestration.Assistants.SampleAssistantDemo1;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -46,9 +47,13 @@ public static class Program
             return abo;
         });
 
+        serviceCollection.AddKeyedTransient<SummaryAssistant>("audiovideo");
+
         serviceCollection.AddKeyedTransient("audiovideo", (sp, key) =>
         {
             var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
+            var summaryAssystant = sp.GetRequiredKeyedService<SummaryAssistant>("audiovideo");
+            abo.AddAssistant(summaryAssystant);
             abo.AddAssistant(new AudioVideoAssistant());
             return abo;
         });

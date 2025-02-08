@@ -26,9 +26,9 @@ internal class AnswerAssistant : BaseAssistant
 
     [Description("Get a value from an assistant property to return to the user to answer the question and finish!")]
     private Task<string> GetAssistantProperty(
-    [Description("The name of the assistant to get the property from")]
+        [Description("The name of the assistant to get the property from")]
         string assistantName,
-    [Description("The name of the property to get")]
+        [Description("The name of the property to get")]
         string propertyName)
     {
         var assistant = _assistants.FirstOrDefault(a => assistantName.Equals(a.Name, System.StringComparison.OrdinalIgnoreCase));

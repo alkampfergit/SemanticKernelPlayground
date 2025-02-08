@@ -17,6 +17,8 @@ public abstract class BaseAssistant
 
     private readonly Dictionary<string, FunctionInfo> _functions = new(StringComparer.OrdinalIgnoreCase);
 
+    protected AssistantBasedOrchestrator _orchestrator;
+
     protected List<State> _stateList = new();
 
     public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function, bool IsFinal);
@@ -27,6 +29,11 @@ public abstract class BaseAssistant
     }
 
     public string Name => _name;
+
+    internal void SetOrchestrator(AssistantBasedOrchestrator orchestrator)
+    {
+        _orchestrator = orchestrator;
+    }
 
     protected void RegisterFunctionDelegate(
         string functionName,

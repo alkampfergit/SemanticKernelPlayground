@@ -29,7 +29,14 @@ public class AssistantBasedOrchestrator
     public AssistantBasedOrchestrator AddAssistant(BaseAssistant assistant)
     {
         _assistants.Add(assistant);
+        assistant.SetOrchestrator(this);
         return this;
+    }
+
+    public BaseAssistant GetAssistant(string name)
+    {
+        return _assistants.FirstOrDefault(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) 
+            ?? throw new Exception($"Assistant with name {name} not found");
     }
 
     public async Task<string> AskAsync(string question, CancellationToken cancellationToken = default)
