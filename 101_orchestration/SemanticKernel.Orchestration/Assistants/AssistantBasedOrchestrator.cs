@@ -1,6 +1,8 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using SemanticKernel.Orchestration.Assistants.BaseAssistants;
 using SemanticKernel.Orchestration.Orchestrators;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +21,9 @@ public class AssistantBasedOrchestrator
     {
         _kernelStore = kernelStore;
         _assistants = new List<BaseAssistant>();
+
+        //Add some default assistants
+        _assistants.Add(new AnswerAssistant(_assistants));
     }
 
     public AssistantBasedOrchestrator AddAssistant(BaseAssistant assistant)
@@ -36,12 +41,19 @@ public class AssistantBasedOrchestrator
             //ok I need to get all the functions for all the assistants
             List<KernelFunction> functions = new();
             Dictionary<string, BaseAssistant> assistantMap = new();
+            HashSet<string> finalFunctions = new(StringComparer.OrdinalIgnoreCase);
+
             foreach (var assistant in _assistants)
             {
                 foreach (var function in assistant.GetFunctions())
                 {
                     functions.Add(function.KernelFunction);
                     assistantMap[function.KernelFunction.Name] = assistant;
+
+                    if (function.IsFinal)
+                    {
+                        finalFunctions.Add(function.KernelFunction.Name);
+                    }
                 }
             }
 
@@ -59,19 +71,24 @@ public class AssistantBasedOrchestrator
                 return result.ToString();
             }
 
-            //ok is a functionCall, call the function of the assistant.
             var assistantToCall = assistantMap[response.FunctionName];
-            await assistantToCall.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
+            var assistantFunctionCallResult = await assistantToCall.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
+            if (finalFunctions.Contains(response.FunctionName))
+            {
+                return assistantFunctionCallResult;
+            }
         }
     }
 
-    private async Task<ChatMessageContent> PerformCallWithSimplePromptModel (string question, Kernel kernel, PromptExecutionSettings settings, CancellationToken cancellationToken)
+    private async Task<ChatMessageContent> PerformCallWithSimplePromptModel(string question, Kernel kernel, PromptExecutionSettings settings, CancellationToken cancellationToken)
     {
         StringBuilder prompt = new();
         prompt.AppendLine(
             @"You are an assistant that should answer user question. Analyze facts before deciding what to do next.
 If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
-determine what tool call next
+determine what tool call next.
+When you have all the facts to answer the query, please give the answer without any extra explanation.
+The answer can be in a property of an assistant, in that case you can use the GetAssistantProperty function to get the value and return to the user.
 
 FACTS:");
 
@@ -86,7 +103,7 @@ FACTS:");
 
         prompt.AppendLine("User Question: " + question);
 
-        var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new (settings), cancellationToken: cancellationToken);
+        var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new(settings), cancellationToken: cancellationToken);
         var content = functionResult.GetValue<ChatMessageContent>()!;
         return content;
     }

@@ -6,17 +6,26 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace SemanticKernelExperiments.AudioVideoPlugin;
+
 public class AudioVideoAssistant : BaseAssistant
 {
-    public AudioVideoAssistant() : base("AudioVideoAssistant")
+    public const string AudioVideoAssistantAgentName = "AudioVideoAssistant";
+    public AudioVideoAssistant() : base(AudioVideoAssistantAgentName)
     {
         RegisterFunctionDelegate(
             "ExtractAudio",
             KernelFunctionFactory.CreateFromMethod(ExtractAudio),
             async (args) => await ExtractAudio(args["videofile"].ToString()!));
+
+        RegisterFunctionDelegate(
+            "Transcribe",
+            KernelFunctionFactory.CreateFromMethod(Transcribe),
+            async (args) => await Transcribe(args["audiofile"].ToString()!));
     }
 
     [Description("extract audio in wav format from an mp4 file")]
@@ -50,6 +59,45 @@ public class AudioVideoAssistant : BaseAssistant
         return audioPath;
     }
 
+    [Description("Transcribe text from audio file")]
+    private async Task<string> Transcribe([Description("Full path to the audio file")] string audiofile)
+    {
+        Console.WriteLine($"Transcribing text from audio: {audiofile}");
+
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            string command = $@"whisper ""{audiofile}"" --task transcribe --output_format txt --output_dir ""{tempDir}"" --model tiny";
+            using (var process = new Process())
+            {
+                process.StartInfo.FileName = "whisper";
+                process.StartInfo.Arguments = $"{command}";
+                process.StartInfo.RedirectStandardOutput = false;
+                process.StartInfo.RedirectStandardError = false;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = false;
+
+                process.Start();
+                await process.WaitForExitAsync();
+            }
+
+            //todo: HAndle errors
+            var textFile = Directory.GetFiles(tempDir, "*.txt").FirstOrDefault();
+           if (textFile == null)
+            {
+                return "Unable to transcript the audio";
+            }
+            SetProperty("transcription", File.ReadAllText(textFile));
+            return "transcription done";
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
     public override void AddStateToPrompt(ChatHistory chatHistory)
     {
         foreach (var state in base._stateList)
@@ -58,7 +106,11 @@ public class AudioVideoAssistant : BaseAssistant
             {
                 chatHistory.AddAssistantMessage($"Audio extracted from video {state.Arguments["videofile"]} extracted to file {state.Result}");
             }
-            else 
+            else if (state.FunctionName == "Transcribe")
+            {
+                chatHistory.AddAssistantMessage($"agent {AudioVideoAssistantAgentName} has trancription of file {state.Arguments["audiofile"]}, in Transcription property");
+            }
+            else
             {
                 //Error 
                 throw new Exception("Unknown function");
@@ -74,6 +126,10 @@ public class AudioVideoAssistant : BaseAssistant
             if (state.FunctionName == "ExtractAudio")
             {
                 facts.Add($"Audio was extracted from video {state.Arguments["videofile"]} to file {state.Result}");
+            }
+            else if (state.FunctionName == "Transcribe")
+            {
+                facts.Add($"agent {AudioVideoAssistantAgentName} has trancription of file {state.Arguments["audiofile"]}, in Transcription property");
             }
             else
             {

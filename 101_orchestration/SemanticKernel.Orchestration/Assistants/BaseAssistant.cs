@@ -13,23 +13,28 @@ namespace SemanticKernel.Orchestration.Assistants;
 public abstract class BaseAssistant
 {
     private readonly string _name;
+    private readonly Dictionary<string, string> _properties = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly Dictionary<string, FunctionInfo> _functions = new(StringComparer.OrdinalIgnoreCase);
 
     protected List<State> _stateList = new();
 
-    public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function);
+    public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function, bool IsFinal);
 
     public BaseAssistant(string name)
     {
         _name = name;
     }
 
+    public string Name => _name;
+
     protected void RegisterFunctionDelegate(
         string functionName,
         KernelFunction kernelFunction,
-        Func<IDictionary<string, object>, Task<string>> function)
+        Func<IDictionary<string, object>, Task<string>> function,
+        bool isFinal = false)
     {
-        _functions[functionName] = new FunctionInfo(functionName, kernelFunction, function);
+        _functions[functionName] = new FunctionInfo(functionName, kernelFunction, function, isFinal);
     }
 
     public virtual void AddStateToPrompt(ChatHistory chatHistory)
@@ -55,7 +60,7 @@ public abstract class BaseAssistant
         return _functions.Values;
     }
 
-    public async Task ExecuteFunctionAsync(string function, IDictionary<string, object> arguments)
+    public async Task<string> ExecuteFunctionAsync(string function, IDictionary<string, object> arguments)
     {
         if (!_functions.ContainsKey(function))
         {
@@ -65,6 +70,22 @@ public abstract class BaseAssistant
         var functionInfo = _functions[function];
         var result = await functionInfo.Function(arguments);
         _stateList.Add(new State(function, arguments, result));
+        return result;
+    }
+
+    public virtual string GetProperty(string propertyName)
+    {
+        if (_properties.TryGetValue(propertyName, out var value))
+        {
+            return value;
+        }
+
+        throw new ArgumentException($"Property {propertyName} not found");
+    }
+
+    protected void SetProperty(string propertyName, string value)
+    {
+        _properties[propertyName] = value;
     }
 
     protected record State(string FunctionName, IDictionary<string, object> Arguments, string Result)
