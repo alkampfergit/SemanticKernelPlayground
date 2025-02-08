@@ -15,7 +15,7 @@ public abstract class BaseAssistant
     private readonly string _name;
     private readonly Dictionary<string, FunctionInfo> _functions = new(StringComparer.OrdinalIgnoreCase);
 
-    private List<State> _state = new ();
+    protected List<State> _state = new ();
 
     public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function);
 
@@ -36,9 +36,8 @@ public abstract class BaseAssistant
     {
         foreach (var state in _state)
         {
-            chatHistory.AddMessage(
-                AuthorRole.Assistant, 
-                $"Function called: {state.functionName} with result: {state.result}");
+            chatHistory.AddAssistantMessage(
+                state.ToPromptString());
         }
     }
 
@@ -56,8 +55,11 @@ public abstract class BaseAssistant
 
         var functionInfo = _functions[function];
         var result = await functionInfo.Function(arguments);
-        _state.Add(new State(function, result));
+        _state.Add(new State(function, arguments, result));
     }
 
-    private record State(string functionName, string result);
+    protected record State(string FunctionName, IDictionary<string, object> Arguments, string Result)
+    {
+        public string ToPromptString() => $"Tool called: {FunctionName} with parameters {String.Join(",", Arguments)} returned: {Result}";
+    }
 }

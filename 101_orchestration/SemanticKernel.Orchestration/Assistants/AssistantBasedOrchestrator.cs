@@ -47,7 +47,6 @@ public class AssistantBasedOrchestrator
                 }
             }
 
-
             var settings = new PromptExecutionSettings
             {
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
@@ -55,7 +54,9 @@ public class AssistantBasedOrchestrator
 
             ChatHistory chatMessages = new();
             chatMessages.AddSystemMessage(
-                "you are an orchestrator that try to solve user question with your memory or assistants");
+                @"You are an assistant that should answer user question. Analyze current state before deciding what to do next.
+If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
+determine what tool call next");
 
             chatMessages.AddUserMessage("Question: " + question);
             foreach (var assistant in _assistants)

@@ -1,10 +1,10 @@
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using SemanticKernel.Orchestration.Orchestrators;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using SemanticKernel.Orchestration.Orchestrators;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
@@ -33,16 +33,16 @@ public class IChatCompletionServiceInterceptor : IChatCompletionService
         CancellationToken cancellationToken = default)
     {
         var container = KernelStore.GetActiveContainer();
-        
+
         // Check all constructor-injected wrappers first
         foreach (var wrapper in _wrappers)
         {
             var wrappedResult = await wrapper.OnChatWrappingAsync(
-                chatHistory, 
-                executionSettings, 
-                kernel, 
+                chatHistory,
+                executionSettings,
+                kernel,
                 cancellationToken);
-            
+
             if (wrappedResult != null)
             {
                 return wrappedResult;
@@ -55,11 +55,11 @@ public class IChatCompletionServiceInterceptor : IChatCompletionService
             foreach (var wrapper in container.Wrappers)
             {
                 var wrappedResult = await wrapper.OnChatWrappingAsync(
-                    chatHistory, 
-                    executionSettings, 
-                    kernel, 
+                    chatHistory,
+                    executionSettings,
+                    kernel,
                     cancellationToken);
-                
+
                 if (wrappedResult != null)
                 {
                     return wrappedResult;
@@ -68,7 +68,7 @@ public class IChatCompletionServiceInterceptor : IChatCompletionService
         }
 
         var result = await _inner.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
-        
+
         // Call all constructor-injected interceptors
         foreach (var interceptor in _interceptors)
         {

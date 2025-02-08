@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
@@ -46,11 +48,28 @@ public static class Program
             return abo;
         });
 
-        // now build the provider so we can get the KernelStore and
-        // configure with the handlers
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-        var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        //var function = async ([Description("expression to be solved")]string expression) =>
+        //{
+        //    var expr = new NCalc.AsyncExpression(expression);
+        //    var result = await expr.EvaluateAsync();
+        //    return Convert.ToDouble(result).ToString();
+        //};
 
+        //var functionk = KernelFunctionFactory.CreateFromMethod(function);
+        //gpt4MiniBuilder.Plugins.AddFromFunctions("math", [functionk]);
+
+        //var settings = new PromptExecutionSettings
+        //{
+        //    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: true)
+        //};
+
+        //var serviceProvider = serviceCollection.BuildServiceProvider();
+        //var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        //using var scope = kernelStore.StartContainerScope();
+        //var result = await kernelStore.GetKernel("gpt4omini").InvokePromptAsync("how much is 1+4?", arguments: new (settings));
+        //Console.WriteLine("Result:" + result);
+
+        var serviceProvider = serviceCollection.BuildServiceProvider();
         //await SimpleChatExampleAsync(kernelStore);
         // bool shouldExit;
         // do
@@ -67,9 +86,10 @@ public static class Program
     private static async Task OrchestratorExampleAsync(ServiceProvider serviceProvider)
     {
         var orchestrator = serviceProvider.GetRequiredService<AssistantBasedOrchestrator>();
-        
+        var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
         while (true)
         {
+            using var scope = kernelStore.StartContainerScope();
             Console.Write("\nAsk a question (press Enter or type 'exit' to quit): ");
             var question = Console.ReadLine();
 
