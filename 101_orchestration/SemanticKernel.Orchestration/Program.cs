@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Assistants.SampleAssistantDemo1;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
+using SemanticKernelExperiments.AudioVideoPlugin;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration;
 
@@ -32,44 +30,31 @@ public static class Program
         serviceCollection.AddKernelStore(new[]
         {
             new KernelDefinition(
-                "gpt4o", 
-                gpt4oBuilder, 
+                "gpt4o",
+                gpt4oBuilder,
                 "GPT-4 Optimized Kernel for enhanced performance"),
             new KernelDefinition(
-                "gpt4omini", 
-                gpt4MiniBuilder, 
+                "gpt4omini",
+                gpt4MiniBuilder,
                 "GPT-4 Mini Kernel for lighter workloads")
         });
 
-        serviceCollection.AddTransient(sp => 
+        serviceCollection.AddTransient(sp =>
         {
             var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
             abo.AddAssistant(new MathAssistant());
             return abo;
         });
 
-        //var function = async ([Description("expression to be solved")]string expression) =>
-        //{
-        //    var expr = new NCalc.AsyncExpression(expression);
-        //    var result = await expr.EvaluateAsync();
-        //    return Convert.ToDouble(result).ToString();
-        //};
-
-        //var functionk = KernelFunctionFactory.CreateFromMethod(function);
-        //gpt4MiniBuilder.Plugins.AddFromFunctions("math", [functionk]);
-
-        //var settings = new PromptExecutionSettings
-        //{
-        //    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: true)
-        //};
-
-        //var serviceProvider = serviceCollection.BuildServiceProvider();
-        //var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
-        //using var scope = kernelStore.StartContainerScope();
-        //var result = await kernelStore.GetKernel("gpt4omini").InvokePromptAsync("how much is 1+4?", arguments: new (settings));
-        //Console.WriteLine("Result:" + result);
+        serviceCollection.AddKeyedTransient("audiovideo", (sp, key) =>
+        {
+            var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
+            abo.AddAssistant(new AudioVideoAssistant());
+            return abo;
+        });
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
+
         //await SimpleChatExampleAsync(kernelStore);
         // bool shouldExit;
         // do
@@ -80,10 +65,39 @@ public static class Program
         // } while (!shouldExit);
 
         //orchestrator example
-        await OrchestratorExampleAsync(serviceProvider);
+        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        await OrchestratorVideoExampleAsync(serviceProvider);
     }
 
-    private static async Task OrchestratorExampleAsync(ServiceProvider serviceProvider)
+    private static async Task OrchestratorVideoExampleAsync(ServiceProvider serviceProvider)
+    {
+        var orchestrator = serviceProvider.GetRequiredKeyedService<AssistantBasedOrchestrator>("audiovideo");
+        var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        while (true)
+        {
+            using var scope = kernelStore.StartContainerScope();
+            Console.Write("\nAsk a question (press Enter or type 'exit' to quit): ");
+            var question = Console.ReadLine();
+
+            if (string.IsNullOrEmpty(question) || question.Equals("exit", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Goodbye!");
+                break;
+            }
+
+            try
+            {
+                var answer = await orchestrator.AskAsync(question);
+                Console.WriteLine("\nAnswer: " + answer);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private static async Task OrchestratorSimpleMathExampleAsync(ServiceProvider serviceProvider)
     {
         var orchestrator = serviceProvider.GetRequiredService<AssistantBasedOrchestrator>();
         var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
@@ -123,7 +137,7 @@ public static class Program
             { "gpt-4o", (0.08m/1000, 0.08m/1000) },           // GPT-4o
             { "gpt-4o-mini", (0.03m/1000, 0.03m/1000) }         // GPT-4o Mini
         });
-        
+
         var assistant = new SimpleChatAssistant("gpt4omini", kernelStore, conversation);
         while (true)
         {
@@ -147,7 +161,7 @@ public static class Program
 
             var response = await assistant.SendMessageAsync(userInput);
             Console.WriteLine("\nAssistant: " + response);
-            
+
             var usageReport = usagePrinter.GetUsageReport();
             Console.WriteLine(usageReport.FormattedReport);
         }

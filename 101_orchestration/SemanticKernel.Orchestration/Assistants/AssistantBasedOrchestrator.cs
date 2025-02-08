@@ -1,13 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernel.Orchestration.Orchestrators;
-using Microsoft.SemanticKernel;
-using System.Runtime.CompilerServices;
-using Parlot.Fluent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants;
 
@@ -52,23 +50,8 @@ public class AssistantBasedOrchestrator
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
             };
 
-            ChatHistory chatMessages = new();
-            chatMessages.AddSystemMessage(
-                @"You are an assistant that should answer user question. Analyze current state before deciding what to do next.
-If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
-determine what tool call next");
-
-            chatMessages.AddUserMessage("Question: " + question);
-            foreach (var assistant in _assistants)
-            {
-                assistant.AddStateToPrompt(chatMessages);
-            }
-
-            var chatEngine = kernel.GetRequiredService<IChatCompletionService>();
-            var result = await chatEngine.GetChatMessageContentAsync(
-                chatMessages,
-                settings,
-                cancellationToken: cancellationToken);
+            //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
+            ChatMessageContent result = await PerformCallWithSimplePromptModel(question, kernel, settings, cancellationToken);
 
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
@@ -80,5 +63,56 @@ determine what tool call next");
             var assistantToCall = assistantMap[response.FunctionName];
             await assistantToCall.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
         }
+    }
+
+    private async Task<ChatMessageContent> PerformCallWithSimplePromptModel (string question, Kernel kernel, PromptExecutionSettings settings, CancellationToken cancellationToken)
+    {
+        StringBuilder prompt = new();
+        prompt.AppendLine(
+            @"You are an assistant that should answer user question. Analyze facts before deciding what to do next.
+If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
+determine what tool call next
+
+FACTS:");
+
+        foreach (var assistant in _assistants)
+        {
+            var fact = assistant.GetFacts();
+            foreach (var f in fact)
+            {
+                prompt.AppendLine("FACT: " + f);
+            }
+        }
+
+        prompt.AppendLine("User Question: " + question);
+
+        var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new (settings), cancellationToken: cancellationToken);
+        var content = functionResult.GetValue<ChatMessageContent>()!;
+        return content;
+    }
+
+    private async Task<ChatMessageContent> PerformCallWithChatModel(string question, Kernel kernel, PromptExecutionSettings settings, CancellationToken cancellationToken)
+    {
+        ChatHistory chatMessages = new();
+        chatMessages.AddSystemMessage(
+            @"You are an assistant that should answer user question. Analyze facts before deciding what to do next.
+If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
+determine what tool call next
+
+FACTS FOLLOW");
+
+        foreach (var assistant in _assistants)
+        {
+            assistant.AddStateToPrompt(chatMessages);
+        }
+
+        chatMessages.AddUserMessage("User Question: " + question);
+
+        var chatEngine = kernel.GetRequiredService<IChatCompletionService>();
+        var result = await chatEngine.GetChatMessageContentAsync(
+            chatMessages,
+            settings,
+            cancellationToken: cancellationToken);
+        return result;
     }
 }

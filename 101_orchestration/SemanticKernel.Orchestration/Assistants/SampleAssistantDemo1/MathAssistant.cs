@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using NCalc;
+using System;
+using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo1;
 
@@ -36,7 +34,7 @@ public class MathAssistant : BaseAssistant
 
     public override void AddStateToPrompt(ChatHistory chatHistory)
     {
-        foreach (var state in _state)
+        foreach (var state in _stateList)
         {
             chatHistory.AddAssistantMessage(state.Arguments["expression"].ToString() + " = " + state.Result);
         }

@@ -1,8 +1,8 @@
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace SemanticKernel.Orchestration.Assistants;
 
@@ -15,7 +15,7 @@ public abstract class BaseAssistant
     private readonly string _name;
     private readonly Dictionary<string, FunctionInfo> _functions = new(StringComparer.OrdinalIgnoreCase);
 
-    protected List<State> _state = new ();
+    protected List<State> _stateList = new();
 
     public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function);
 
@@ -34,11 +34,20 @@ public abstract class BaseAssistant
 
     public virtual void AddStateToPrompt(ChatHistory chatHistory)
     {
-        foreach (var state in _state)
+        foreach (var state in _stateList)
         {
-            chatHistory.AddAssistantMessage(
-                state.ToPromptString());
+            chatHistory.AddAssistantMessage(state.ToPromptString());
         }
+    }
+
+    public virtual List<string> GetFacts()
+    {
+        var facts = new List<string>();
+        foreach (var state in _stateList)
+        {
+            facts.Add(state.ToPromptString());
+        }
+        return facts;
     }
 
     public IReadOnlyCollection<FunctionInfo> GetFunctions()
@@ -55,7 +64,7 @@ public abstract class BaseAssistant
 
         var functionInfo = _functions[function];
         var result = await functionInfo.Function(arguments);
-        _state.Add(new State(function, arguments, result));
+        _stateList.Add(new State(function, arguments, result));
     }
 
     protected record State(string FunctionName, IDictionary<string, object> Arguments, string Result)
