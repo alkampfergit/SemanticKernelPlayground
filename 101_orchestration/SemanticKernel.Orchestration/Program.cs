@@ -73,10 +73,22 @@ public static class Program
         //} while (!shouldExit);
 
         //orchestrator example
-        await OrchestratorSimpleMathExampleAsync(serviceProvider);
-        //await OrchestratorVideoExampleAsync(serviceProvider);
+        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        await OrchestratorVideoExampleAsync(serviceProvider);
     }
 
+    /// <summary>
+    ///
+    /// I want to extract audio from video "C:\temp\rdp.mp4"
+    /// 
+    /// I need transcription of "C:\temp\rdp.mp4"
+    ///
+    /// I need a summary of the audio of "C:\temp\rdp.mp4"
+    ///
+    /// whisper C:\temp\rdp.wav --task transcribe --output_format txt --output_dir c:\temp\out --model tiny
+    /// </summary>
+    /// <param name="serviceProvider"></param>
+    /// <returns></returns>
     private static async Task OrchestratorVideoExampleAsync(ServiceProvider serviceProvider)
     {
         var orchestrator = serviceProvider.GetRequiredKeyedService<AssistantBasedOrchestrator>("audiovideo");

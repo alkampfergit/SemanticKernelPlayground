@@ -89,7 +89,10 @@ public class AudioVideoAssistant : BaseAssistant
             {
                 return "Unable to transcript the audio";
             }
-            SetProperty("transcription", File.ReadAllText(textFile));
+
+            string transcription = File.ReadAllText(textFile);
+            SetLocalProperty("transcription", transcription);
+            SetGlobalProperty("transcription", transcription);
             return "transcription done";
         }
         finally

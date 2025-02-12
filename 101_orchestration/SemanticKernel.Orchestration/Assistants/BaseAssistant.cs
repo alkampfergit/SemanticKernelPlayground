@@ -38,7 +38,7 @@ public abstract class BaseAssistant
     protected void RegisterFunctionDelegate(
         string functionName,
         KernelFunction kernelFunction,
-        Func<IDictionary<string, object>, Task<string>> function,
+        Func<IDictionary<string, object>, Task<string?>> function,
         bool isFinal = false)
     {
         _functions[functionName] = new FunctionInfo(functionName, kernelFunction, function, isFinal);
@@ -80,7 +80,7 @@ public abstract class BaseAssistant
         return result;
     }
 
-    public virtual string GetProperty(string propertyName)
+    public virtual string GetAssistantProperty(string propertyName)
     {
         if (_properties.TryGetValue(propertyName, out var value))
         {
@@ -90,9 +90,14 @@ public abstract class BaseAssistant
         throw new ArgumentException($"Property {propertyName} not found");
     }
 
-    protected void SetProperty(string propertyName, string value)
+    protected void SetLocalProperty(string propertyName, string value)
     {
         _properties[propertyName] = value;
+    }
+
+    protected void SetGlobalProperty(string propertyName, string value)
+    {
+        _orchestrator.AddProperty(propertyName, value);
     }
 
     protected record State(string FunctionName, IDictionary<string, object> Arguments, string Result)

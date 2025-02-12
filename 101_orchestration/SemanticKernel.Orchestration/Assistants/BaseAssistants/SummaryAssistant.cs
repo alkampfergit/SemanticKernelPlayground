@@ -38,7 +38,7 @@ internal class SummaryAssistant : BaseAssistant
     {
         //need to grab property from assistant names
         var assistant = _orchestrator.GetAssistant(assistantName);
-        var property = assistant.GetProperty(propertyName);
+        var property = assistant.GetAssistantProperty(propertyName);
         if (property == null)
         {
             throw new System.Exception($"Property {propertyName} not found in assistant {assistantName}");
@@ -60,7 +60,7 @@ internal class SummaryAssistant : BaseAssistant
 
         var result = await kernel.InvokePromptAsync(prompt.ToString());
         var stringResult = result.ToString();
-        SetProperty("Summary", stringResult);
+        SetLocalProperty("Summary", stringResult);
         return "Summary saved in Summary property";
     }
 

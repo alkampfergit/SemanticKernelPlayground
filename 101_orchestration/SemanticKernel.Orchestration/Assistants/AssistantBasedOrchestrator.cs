@@ -17,15 +17,13 @@ public class AssistantBasedOrchestrator
     private const string DefaultModelName = "gpt4omini";
     private readonly KernelStore _kernelStore;
     private readonly List<BaseAssistant> _assistants;
-    private readonly KernelFunction _getPropertyFunction;
 
     public AssistantBasedOrchestrator(KernelStore kernelStore)
     {
         _kernelStore = kernelStore;
         _assistants = new List<BaseAssistant>();
-        _getPropertyFunction = KernelFunctionFactory.CreateFromMethod(GetProperty);
         //Add some default assistants
-        //_assistants.Add(new AnswerAssistant(_assistants));
+        AddAssistant(new AnswerAssistant(_assistants));
     }
 
     /// <summary>
@@ -91,8 +89,6 @@ public class AssistantBasedOrchestrator
                     }
                 }
             }
-            functions.Add(_getPropertyFunction);
-            finalFunctions.Add(_getPropertyFunction.Name);
 
             //add get property to the list
 
@@ -129,11 +125,11 @@ public class AssistantBasedOrchestrator
     {
         StringBuilder prompt = new();
         prompt.AppendLine(
-            @"You are an assistant that should answer user question. Analyze facts before deciding what to do next.
-If current state can answer user question proceed generating an answer, if not enough information is present, analyze the state to 
-determine what tool call next.
-When you have all the facts to answer the query, please give the answer without any extra explanation.
-The answer can be in a property of an assistant, in that case you can use the GetAssistantProperty function to get the value and return to the user.
+            @"You are an assistant that should answer user question. 
+Analyze FACTS before deciding what to do next.
+If FACTS alone can answer the question proceed generating an answer.
+If Answer is in one of the property use appropriate tool.
+If FACTS are not enough to answer, analyze FACTS to determine what tool call next.
 
 FACTS:");
 
@@ -146,7 +142,7 @@ FACTS:");
             }
         }
 
-        prompt.AppendLine("User Question: " + question);
+        prompt.AppendLine("\nUser Question: " + question);
 
         var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new(settings), cancellationToken: cancellationToken);
         var content = functionResult.GetValue<ChatMessageContent>()!;
