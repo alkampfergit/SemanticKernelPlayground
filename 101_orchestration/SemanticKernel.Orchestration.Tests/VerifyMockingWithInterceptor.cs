@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Moq;
 using SemanticKernel.Orchestration.Helpers;
-using SemanticKernel.Orchestration.Orchestrators;
 using SemanticKernel.Orchestration.Tests.Helpers;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace SemanticKernel.Orchestration.Tests;
@@ -21,11 +19,11 @@ public class VerifyMockingWithInterceptor
     {
         // Arrange
         var mockWrapper = new Mock<IChatWrappingTool>();
-        var mockedResponse = new List<ChatMessageContent> 
-        { 
+        var mockedResponse = new List<ChatMessageContent>
+        {
             new ChatMessageContent(AuthorRole.Assistant, "Mocked response")
         };
-        
+
         mockWrapper
             .Setup(x => x.OnChatWrappingAsync(
                 It.IsAny<ChatHistory>(),
@@ -39,7 +37,7 @@ public class VerifyMockingWithInterceptor
         builder.Services.AddMockedLLM("gpt4o");
         builder.Services.AddSingleton(mockWrapper.Object);
         builder.EnableInterception();
-        
+
         var kernel = builder.Build();
 
         // Act
@@ -51,7 +49,7 @@ public class VerifyMockingWithInterceptor
             It.IsAny<ChatHistory>(),
             It.IsAny<PromptExecutionSettings>(),
             It.IsAny<Kernel>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

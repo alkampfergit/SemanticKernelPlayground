@@ -58,20 +58,23 @@ public static class Program
             return abo;
         });
 
+        serviceCollection.AddSingleton<IChatInterceptorTool, TokenUsageCounter>();
+
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        //await SimpleChatExampleAsync(kernelStore);
-        // bool shouldExit;
-        // do
-        // {
-        //     using var scope = kernelStore.StartContainerScope();
-        //     var compressedConversation = new TokenLimitedConversation(kernelStore, "gpt4omini", 2000);
-        //     shouldExit = await SimpleChatExampleAsync(kernelStore, compressedConversation);
-        // } while (!shouldExit);
+        //var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        ////await SimpleChatExampleAsync(kernelStore);
+        //bool shouldExit;
+        //do
+        //{
+        //    using var scope = kernelStore.StartContainerScope();
+        //    var compressedConversation = new TokenLimitedConversation(kernelStore, "gpt4omini", 2000);
+        //    shouldExit = await SimpleChatExampleAsync(kernelStore, compressedConversation);
+        //} while (!shouldExit);
 
         //orchestrator example
-        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
-        await OrchestratorVideoExampleAsync(serviceProvider);
+        await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        //await OrchestratorVideoExampleAsync(serviceProvider);
     }
 
     private static async Task OrchestratorVideoExampleAsync(ServiceProvider serviceProvider)

@@ -85,7 +85,7 @@ public class AudioVideoAssistant : BaseAssistant
 
             //todo: HAndle errors
             var textFile = Directory.GetFiles(tempDir, "*.txt").FirstOrDefault();
-           if (textFile == null)
+            if (textFile == null)
             {
                 return "Unable to transcript the audio";
             }

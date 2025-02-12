@@ -1,10 +1,10 @@
-using System.Threading.Tasks;
-using System.Threading;
+using Microsoft.ML.Tokenizers;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Linq;
-using Microsoft.ML.Tokenizers;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Orchestrators;
 
@@ -16,8 +16,8 @@ public class TokenLimitedConversation : SimpleConversation
     private readonly int _maxTokens;
 
     public TokenLimitedConversation(
-        KernelStore kernelStore, 
-        string kernelName, 
+        KernelStore kernelStore,
+        string kernelName,
         int maxTokens = 2000)
     {
         _kernel = kernelStore.GetKernel(kernelName);
@@ -36,17 +36,17 @@ public class TokenLimitedConversation : SimpleConversation
         var tokenCount = _chatHistory
             .Select(m => _tokenizer.CountTokens(m.Content))
             .Sum();
-        
+
         if (tokenCount > _maxTokens)
         {
             var summarizer = _kernel.CreateFunctionFromPrompt(
                 "Summarize this conversation between a user and an assistant while keeping the most important points: {{$input}}");
-            
+
             var ka = new KernelArguments();
             string conversationText = string.Join("\n", _chatHistory.Select(m => $"{m.Role}: {m.Content}"));
             ka.Add("input", conversationText);
             var summary = await _kernel.InvokeAsync(summarizer, ka, cancellationToken);
-            
+
             _chatHistory.Clear();
             _chatHistory.AddSystemMessage($"Conversation so far:\n{summary.ToString()}\n\n");
         }

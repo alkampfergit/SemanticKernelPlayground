@@ -1,10 +1,10 @@
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
@@ -33,7 +33,7 @@ public class TokenUsageCounter : IChatInterceptorTool
 {
     private readonly Dictionary<string, ModelTokenUsage> _modelUsage = new();
     private int _callCount = 0;
-    
+
     public int CallCount => _callCount;
     public IReadOnlyDictionary<string, ModelTokenUsage> ModelUsage => _modelUsage;
 
@@ -49,7 +49,7 @@ public class TokenUsageCounter : IChatInterceptorTool
     private string CleanModelName(string modelName)
     {
         if (string.IsNullOrEmpty(modelName)) return string.Empty;
-        
+
         if (modelName.Length >= 10)
         {
             string lastTenChars = modelName.Substring(modelName.Length - 10);
@@ -80,7 +80,7 @@ public class TokenUsageCounter : IChatInterceptorTool
                     && completionUsage is OpenAI.Chat.ChatTokenUsage usage)
                 {
                     string modelName = GetModelName(ocmc);
-                    
+
                     if (!_modelUsage.ContainsKey(modelName))
                     {
                         _modelUsage[modelName] = new ModelTokenUsage();
@@ -90,7 +90,7 @@ public class TokenUsageCounter : IChatInterceptorTool
                 }
             }
         }
-        
+
         return Task.CompletedTask;
     }
 }
