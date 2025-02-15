@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SemanticKernel.Orchestration.Assistants;
 using SemanticKernel.Orchestration.Assistants.BaseAssistants;
 using SemanticKernel.Orchestration.Assistants.SampleAssistantDemo1;
+using SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
+using SemanticKernel.Orchestration.Configuration;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
 using SemanticKernelExperiments.AudioVideoPlugin;
@@ -47,16 +49,42 @@ public static class Program
             return abo;
         });
 
+        serviceCollection.AddSingleton<IUserQuestionManager, ConsoleUserQuestionManager>();
+
         serviceCollection.AddKeyedTransient<SummaryAssistant>("audiovideo");
 
         serviceCollection.AddKeyedTransient("audiovideo", (sp, key) =>
         {
             var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
-            var summaryAssystant = sp.GetRequiredKeyedService<SummaryAssistant>("audiovideo");
-            abo.AddAssistant(summaryAssystant);
+            var summaryAssistant = sp.GetRequiredKeyedService<SummaryAssistant>("audiovideo");
+            abo.AddAssistant(summaryAssistant);
             abo.AddAssistant(new AudioVideoAssistant());
             return abo;
         });
+
+        //Sql
+        System.Data.Common.DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", Microsoft.Data.SqlClient.SqlClientFactory.Instance);
+        var sqlServerConfiguration = new SqlServerConfiguration();
+        serviceCollection.AddSingleton(sqlServerConfiguration);
+        serviceCollection.AddKeyedTransient<SqlServerSchemaAssistant>("sql");
+        serviceCollection.AddKeyedTransient<SqlServerAssistant>("sql");
+        serviceCollection.AddKeyedTransient("sql", (sp, key) =>
+        {
+            var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
+            var allSqlAssistants = sp.GetRequiredKeyedService<SqlServerAssistant>("sql");
+            abo.AddAssistant(allSqlAssistants);
+            abo.AddAssistant(new AudioVideoAssistant());
+            return abo;
+        });
+
+        //serviceCollection.AddKeyedTransient("sql", (sp, key) =>
+        //{
+        //    var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
+        //    var summaryAssystant = sp.GetRequiredKeyedService<SqlServerAssistant>("audiovideo");
+        //    abo.AddAssistant(summaryAssystant);
+        //    abo.AddAssistant(new AudioVideoAssistant());
+        //    return abo;
+        //});
 
         serviceCollection.AddSingleton<IChatInterceptorTool, TokenUsageCounter>();
 
@@ -74,7 +102,15 @@ public static class Program
 
         //orchestrator example
         //await OrchestratorSimpleMathExampleAsync(serviceProvider);
-        await OrchestratorVideoExampleAsync(serviceProvider);
+        //await OrchestratorVideoExampleAsync(serviceProvider);
+        await SqlExampleAsync(serviceProvider);
+    }
+
+    private static async Task SqlExampleAsync(ServiceProvider serviceProvider)
+    {
+        var orchestrator = serviceProvider.GetRequiredKeyedService<AssistantBasedOrchestrator>("sql");
+        var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        await BasicOrchestratorCycle(orchestrator, kernelStore);
     }
 
     /// <summary>
@@ -93,6 +129,11 @@ public static class Program
     {
         var orchestrator = serviceProvider.GetRequiredKeyedService<AssistantBasedOrchestrator>("audiovideo");
         var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        await BasicOrchestratorCycle(orchestrator, kernelStore);
+    }
+
+    private static async Task BasicOrchestratorCycle(AssistantBasedOrchestrator orchestrator, KernelStore kernelStore)
+    {
         while (true)
         {
             using var scope = kernelStore.StartContainerScope();

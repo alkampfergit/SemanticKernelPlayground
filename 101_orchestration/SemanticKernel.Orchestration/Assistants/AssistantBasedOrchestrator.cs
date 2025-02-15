@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants;
 
-public class AssistantBasedOrchestrator
+public class AssistantBasedOrchestrator : IConversationOrchestrator
 {
     private const string DefaultModelName = "gpt4omini";
     private readonly KernelStore _kernelStore;
@@ -131,9 +131,17 @@ public class AssistantBasedOrchestrator
 Analyze FACTS before deciding what to do next.
 If FACTS alone can answer the question proceed generating an answer.
 If Answer is in one of the property use appropriate tool.
-If FACTS are not enough to answer, analyze FACTS to determine what tool call next.
+If FACTS are not enough to answer, analyze FACTS to determine what tool call next.");
 
-FACTS:");
+        foreach (var assistant in _assistants)
+        {
+            if (!string.IsNullOrEmpty(assistant.InjectedPrompt))
+            {
+                prompt.AppendLine(assistant.InjectedPrompt);
+            }
+        }
+
+        prompt.AppendLine("FACTS:");
 
         foreach (var response in _responses)
         {
@@ -171,4 +179,10 @@ FACTS FOLLOW");
             cancellationToken: cancellationToken);
         return result;
     }
+}
+
+public interface IConversationOrchestrator
+{
+    void AddProperty(string propertyName, string value);
+    string? GetProperty([Description("Property name")] string propertyName);
 }

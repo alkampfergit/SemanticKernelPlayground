@@ -2,6 +2,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants;
@@ -10,14 +11,14 @@ namespace SemanticKernel.Orchestration.Assistants;
 /// An assistant is capable of interacting with the kernel 
 /// and orchestrating stuff.
 /// </summary>
-public abstract class BaseAssistant
+public abstract class BaseAssistant : IConversationOrchestrator
 {
     private readonly string _name;
     private readonly Dictionary<string, string> _properties = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly Dictionary<string, FunctionInfo> _functions = new(StringComparer.OrdinalIgnoreCase);
 
-    protected AssistantBasedOrchestrator _orchestrator;
+    protected IConversationOrchestrator _orchestrator;
 
     public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<AssistantResponse>> Function, bool IsFinal);
 
@@ -28,7 +29,9 @@ public abstract class BaseAssistant
 
     public string Name => _name;
 
-    internal void SetOrchestrator(AssistantBasedOrchestrator orchestrator)
+    public virtual string InjectedPrompt => string.Empty;
+
+    internal void SetOrchestrator(IConversationOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
     }
@@ -49,7 +52,7 @@ public abstract class BaseAssistant
 
     public virtual string GetFact(AssistantResponse agentOperationResult)
     {
-         return agentOperationResult.Result;
+        return agentOperationResult.Result;
     }
 
     public IReadOnlyCollection<FunctionInfo> GetFunctions()
@@ -86,5 +89,15 @@ public abstract class BaseAssistant
     protected void SetGlobalProperty(string propertyName, string value)
     {
         _orchestrator.AddProperty(propertyName, value);
+    }
+
+    public void AddProperty(string propertyName, string value)
+    {
+        SetLocalProperty(propertyName, value);
+    }
+
+    public string? GetProperty([Description("Property name")] string propertyName)
+    {
+        return _properties.TryGetValue(propertyName, out var value) ? value : null;
     }
 }
