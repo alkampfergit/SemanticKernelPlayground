@@ -1,7 +1,6 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
@@ -18,10 +17,9 @@ public class MathAssistant : BaseAssistant
     }
 
     private int count = 1;
-    private List<ExpressionResult> _results = new();
 
     [Description("Evaluates a mathematical expression")]
-    public async Task<string> EvaluateExpression(
+    public async Task<AssistantResponse> EvaluateExpression(
         [Description("the expression to be evaluated")] string expression)
     {
         try
@@ -32,9 +30,10 @@ public class MathAssistant : BaseAssistant
 
             var propertyName = $"expression{count++}";
             base._orchestrator.AddProperty(propertyName, resultDouble.ToString());
-            _results.Add(new ExpressionResult(propertyName, expression, resultDouble));
-
-            return $"Result of {expression} is in property {propertyName} and it is equal to {resultDouble}";
+            var expressionResult = new ExpressionResult(propertyName, expression, resultDouble);
+            return new AssistantResponse(
+                $"Result of {expression} is in property {propertyName} and it is equal to {resultDouble}",
+                expressionResult);
         }
         catch (Exception ex)
         {
@@ -42,20 +41,17 @@ public class MathAssistant : BaseAssistant
         }
     }
 
-    public override void AddStateToPrompt(ChatHistory chatHistory)
+    public override string GetFact(AssistantResponse agentOperationResult)
     {
-        foreach (var result in _results)
-        {
-            chatHistory.AddAssistantMessage(result.ToAssistantMessage());
-        }
+        return ((ExpressionResult)agentOperationResult.State!).ToFact();
     }
 
-    public override List<string> GetFacts()
+    public override void AddResultToPrompt(ChatHistory chatHistory, AssistantResponse agentOperationResult)
     {
-        return _results.ConvertAll(r => r.ToFact());
+        chatHistory.AddAssistantMessage(((ExpressionResult)agentOperationResult.State!).ToAssistantMessage());
     }
 
-    private record ExpressionResult(string PropertyName, string Expression, double Result) 
+    private record ExpressionResult(string PropertyName, string Expression, double Result)
     {
         public string ToFact() => $"Result of {Expression} is in property {PropertyName} and it is equal to {Result}";
 

@@ -2,12 +2,10 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernel.Orchestration.Assistants;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace SemanticKernelExperiments.AudioVideoPlugin;
@@ -29,7 +27,7 @@ public class AudioVideoAssistant : BaseAssistant
     }
 
     [Description("extract audio in wav format from an mp4 file")]
-    private async Task<string> ExtractAudio([Description("Full path to the mp4 file")] string videofile)
+    private async Task<AssistantResponse> ExtractAudio([Description("Full path to the mp4 file")] string videofile)
     {
         Console.WriteLine($"Extracting audio file from video {videofile}");
         // First of all, change the extension of the video file to create the output path
@@ -56,11 +54,11 @@ public class AudioVideoAssistant : BaseAssistant
         }
 
         // Now ffmpeg has created the audio file, return the path to it
-        return audioPath;
+        return new AssistantResponse(audioPath, new State("ExtractAudio", videofile, audioPath));
     }
 
     [Description("Transcribe text from audio file")]
-    private async Task<string> Transcribe([Description("Full path to the audio file")] string audiofile)
+    private async Task<AssistantResponse> Transcribe([Description("Full path to the audio file")] string audiofile)
     {
         Console.WriteLine($"Transcribing text from audio: {audiofile}");
 
@@ -93,7 +91,7 @@ public class AudioVideoAssistant : BaseAssistant
             string transcription = File.ReadAllText(textFile);
             SetLocalProperty("transcription", transcription);
             SetGlobalProperty("transcription", transcription);
-            return "transcription done";
+            return new AssistantResponse("transcription done", new State( "Transcribe", audiofile, ""));
         }
         finally
         {
@@ -101,56 +99,40 @@ public class AudioVideoAssistant : BaseAssistant
         }
     }
 
-    public override void AddStateToPrompt(ChatHistory chatHistory)
+    private record State(string Operation, string InputFile, string OutputFile);
+
+    public override void AddResultToPrompt(ChatHistory chatHistory, AssistantResponse agentOperationResult)
     {
-        foreach (var state in base._stateList)
+        var realState = (State)agentOperationResult.State!;
+        if (realState.Operation == "ExtractAudio")
         {
-            if (state.FunctionName == "ExtractAudio")
-            {
-                chatHistory.AddAssistantMessage($"Audio extracted from video {state.Arguments["videofile"]} extracted to file {state.Result}");
-            }
-            else if (state.FunctionName == "Transcribe")
-            {
-                chatHistory.AddAssistantMessage($"agent {AudioVideoAssistantAgentName} has trancription of file {state.Arguments["audiofile"]}, in Transcription property");
-            }
-            else
-            {
-                //Error 
-                throw new Exception("Unknown function");
-            }
+            chatHistory.AddAssistantMessage($"Audio extracted from video {realState.InputFile} extracted to file {realState.OutputFile}");
+        }
+        else if (realState.Operation == "Transcribe")
+        {
+            chatHistory.AddAssistantMessage($"agent {AudioVideoAssistantAgentName} has trancription of file {realState.InputFile}, in Transcription property");
+        }
+        else
+        {
+            //Error 
+            throw new Exception("Unknown function");
         }
     }
 
-    public override List<string> GetFacts()
+    public override string GetFact(AssistantResponse agentOperationResult)
     {
-        List<string> facts = new();
-        foreach (var state in base._stateList)
+        var realState = (State)agentOperationResult.State!;
+        if (realState.Operation == "ExtractAudio")
         {
-            if (state.FunctionName == "ExtractAudio")
-            {
-                facts.Add($"Audio was extracted from video {state.Arguments["videofile"]} to file {state.Result}");
-            }
-            else if (state.FunctionName == "Transcribe")
-            {
-                facts.Add($"agent {AudioVideoAssistantAgentName} has trancription of file {state.Arguments["audiofile"]}, in Transcription property");
-            }
-            else
-            {
-                //Error 
-                throw new Exception("Unknown function");
-            }
+            return $"Audio was extracted from video {realState.InputFile} to file {realState.OutputFile}";
         }
 
-        return facts;
-    }
+        if (realState.Operation == "Transcribe")
+        {
+            return $"agent {AudioVideoAssistantAgentName} has trancription of file {realState.InputFile}, in Transcription property";
+        }
 
-    //[KernelFunction, Description("Transcript audio from a wav file to a timeline extracting a transcript")]
-    //[return: Description("Transcript of an audio file with time markers")]
-    //public string TranscriptTimeline([Description("Full path to the wav file")] string audioFile)
-    //{
-    //    var python = new PythonWrapper(@"C:\develop\github\SemanticKernelPlayground\skernel\Scripts\python.exe");
-    //    var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "python", "transcript_timeline.py");
-    //    var result = python.Execute(script, audioFile);
-    //    return result;
-    //}
+        //Error 
+        throw new Exception("Unknown function");
+    }
 }

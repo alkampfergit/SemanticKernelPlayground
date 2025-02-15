@@ -17,6 +17,7 @@ public class AssistantBasedOrchestrator
     private const string DefaultModelName = "gpt4omini";
     private readonly KernelStore _kernelStore;
     private readonly List<BaseAssistant> _assistants;
+    private readonly List<(BaseAssistant Assistant, AssistantResponse Response)> _responses = new();
 
     public AssistantBasedOrchestrator(KernelStore kernelStore)
     {
@@ -114,9 +115,10 @@ public class AssistantBasedOrchestrator
 
             var assistantToCall = assistantMap[response.FunctionName];
             var assistantFunctionCallResult = await assistantToCall.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
+            _responses.Add((assistantToCall, assistantFunctionCallResult));
             if (finalFunctions.Contains(response.FunctionName))
             {
-                return assistantFunctionCallResult;
+                return assistantFunctionCallResult.Result;
             }
         }
     }
@@ -133,13 +135,9 @@ If FACTS are not enough to answer, analyze FACTS to determine what tool call nex
 
 FACTS:");
 
-        foreach (var assistant in _assistants)
+        foreach (var response in _responses)
         {
-            var fact = assistant.GetFacts();
-            foreach (var f in fact)
-            {
-                prompt.AppendLine("FACT: " + f);
-            }
+            prompt.AppendLine("FACT: " + response.Assistant.GetFact(response.Response));
         }
 
         prompt.AppendLine("\nUser Question: " + question);
@@ -159,9 +157,9 @@ determine what tool call next
 
 FACTS FOLLOW");
 
-        foreach (var assistant in _assistants)
+        foreach (var response in _responses)
         {
-            assistant.AddStateToPrompt(chatMessages);
+            response.Assistant.AddResultToPrompt(chatMessages, response.Response);
         }
 
         chatMessages.AddUserMessage("User Question: " + question);

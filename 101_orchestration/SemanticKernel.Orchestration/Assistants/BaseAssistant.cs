@@ -19,9 +19,7 @@ public abstract class BaseAssistant
 
     protected AssistantBasedOrchestrator _orchestrator;
 
-    protected List<State> _stateList = new();
-
-    public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<string>> Function, bool IsFinal);
+    public record FunctionInfo(string Name, KernelFunction KernelFunction, Func<IDictionary<string, object>, Task<AssistantResponse>> Function, bool IsFinal);
 
     public BaseAssistant(string name)
     {
@@ -38,28 +36,20 @@ public abstract class BaseAssistant
     protected void RegisterFunctionDelegate(
         string functionName,
         KernelFunction kernelFunction,
-        Func<IDictionary<string, object>, Task<string?>> function,
+        Func<IDictionary<string, object>, Task<AssistantResponse>> function,
         bool isFinal = false)
     {
         _functions[functionName] = new FunctionInfo(functionName, kernelFunction, function, isFinal);
     }
 
-    public virtual void AddStateToPrompt(ChatHistory chatHistory)
+    public virtual void AddResultToPrompt(ChatHistory chatHistory, AssistantResponse agentOperationResult)
     {
-        foreach (var state in _stateList)
-        {
-            chatHistory.AddAssistantMessage(state.ToPromptString());
-        }
+        chatHistory.AddAssistantMessage(agentOperationResult.Result);
     }
 
-    public virtual List<string> GetFacts()
+    public virtual string GetFact(AssistantResponse agentOperationResult)
     {
-        var facts = new List<string>();
-        foreach (var state in _stateList)
-        {
-            facts.Add(state.ToPromptString());
-        }
-        return facts;
+         return agentOperationResult.Result;
     }
 
     public IReadOnlyCollection<FunctionInfo> GetFunctions()
@@ -67,7 +57,7 @@ public abstract class BaseAssistant
         return _functions.Values;
     }
 
-    public async Task<string> ExecuteFunctionAsync(string function, IDictionary<string, object> arguments)
+    public async Task<AssistantResponse> ExecuteFunctionAsync(string function, IDictionary<string, object> arguments)
     {
         if (!_functions.ContainsKey(function))
         {
@@ -75,9 +65,7 @@ public abstract class BaseAssistant
         }
 
         var functionInfo = _functions[function];
-        var result = await functionInfo.Function(arguments);
-        _stateList.Add(new State(function, arguments, result));
-        return result;
+        return await functionInfo.Function(arguments);
     }
 
     public virtual string GetAssistantProperty(string propertyName)
@@ -98,10 +86,5 @@ public abstract class BaseAssistant
     protected void SetGlobalProperty(string propertyName, string value)
     {
         _orchestrator.AddProperty(propertyName, value);
-    }
-
-    protected record State(string FunctionName, IDictionary<string, object> Arguments, string Result)
-    {
-        public string ToPromptString() => $"Tool called: {FunctionName} with parameters {String.Join(",", Arguments)} returned: {Result}";
     }
 }

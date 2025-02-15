@@ -21,10 +21,10 @@ internal class AnswerAssistant : BaseAssistant
     }
 
     [Description("Get a property value to return to the user to answer the question and finish!")]
-    private Task<string?> GetProperty(
+    private Task<AssistantResponse> GetProperty(
         [Description("The name of the property to get")]
         string propertyName)
     {
-        return Task.FromResult(_orchestrator.GetProperty(propertyName));
+        return Task.FromResult(new AssistantResponse(_orchestrator.GetProperty(propertyName)!));
     }
 }
