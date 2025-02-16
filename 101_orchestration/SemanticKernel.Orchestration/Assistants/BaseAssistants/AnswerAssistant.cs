@@ -14,14 +14,14 @@ internal class AnswerAssistant : BaseAssistant
         _assistants = assistants;
 
         RegisterFunctionDelegate(
-            "GetProperty",
-            KernelFunctionFactory.CreateFromMethod(GetProperty),
-            async (args) => await GetProperty(args["propertyName"].ToString()!),
+            "GetOrchestratorProperty",
+            KernelFunctionFactory.CreateFromMethod(GetOrchestratorProperty),
+            async (args) => await GetOrchestratorProperty(args["propertyName"].ToString()!),
             isFinal: true);
     }
 
     [Description("Get a property value to return to the user to answer the question and finish!")]
-    private Task<AssistantResponse> GetProperty(
+    private Task<AssistantResponse> GetOrchestratorProperty(
         [Description("The name of the property to get")]
         string propertyName)
     {

@@ -1,6 +1,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernel.Orchestration.Assistants.BaseAssistants;
+using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
 using System;
 using System.Collections.Generic;
@@ -68,6 +69,12 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
 
     public async Task<string> AskAsync(string question, CancellationToken cancellationToken = default)
     {
+        var tokenCounter = _kernelStore.GetInterceptor<TokenUsageCounter>();
+        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
+        {
+            { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
+            { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
+        });
         while (true)
         {
             var kernel = _kernelStore.GetKernel(DefaultModelName);
@@ -107,6 +114,10 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(question, kernel, settings, cancellationToken);
 
+            //print token usage
+            var report = usagePrinter.GetUsageReport();
+            Console.WriteLine(report);
+            
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
             {

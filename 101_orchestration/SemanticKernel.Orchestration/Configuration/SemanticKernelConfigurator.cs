@@ -7,24 +7,28 @@ namespace SemanticKernel.Orchestration.Configuration;
 
 public class SemanticKernelConfigurator
 {
-    public static IKernelBuilder CreateBasicKernelBuilderGpt4o()
+    public static IKernelBuilder CreateBasicKernelBuilderGpt4o(bool withLogging = false)
     {
-        return ConfigureBasicKernelBuilder("GPT4o", "gpt4o", "gpt4o");
+        return ConfigureBasicKernelBuilder("GPT4o", "gpt4o", "gpt4o", withLogging);
     }
 
-    public static IKernelBuilder CreateBasicKernelBuilderGpt4Mini()
+    public static IKernelBuilder CreateBasicKernelBuilderGpt4Mini(bool withLogging = false)
     {
-        return ConfigureBasicKernelBuilder("GPT4omini", "GPT4omini", "GPT4omini");
+        return ConfigureBasicKernelBuilder("GPT4omini", "GPT4omini", "GPT4omini", withLogging);
     }
 
-    private static IKernelBuilder ConfigureBasicKernelBuilder(string deploymentName, string serviceId, string modelId)
+    private static IKernelBuilder ConfigureBasicKernelBuilder(string deploymentName, string serviceId, string modelId, bool withLogging)
     {
         var kernelBuilder = Kernel.CreateBuilder();
-        kernelBuilder.Services.AddLogging(l => l
-            .SetMinimumLevel(LogLevel.Trace)
-            .AddConsole()
-            .AddDebug()
-        );
+        
+        if (withLogging)
+        {
+            kernelBuilder.Services.AddLogging(l => l
+                .SetMinimumLevel(LogLevel.Trace)
+                .AddConsole()
+                .AddDebug()
+            );
+        }
 
         kernelBuilder.Services.AddAzureOpenAIChatCompletion(
             deploymentName,

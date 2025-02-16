@@ -86,8 +86,6 @@ public static class Program
         //    return abo;
         //});
 
-        serviceCollection.AddSingleton<IChatInterceptorTool, TokenUsageCounter>();
-
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
         //var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
@@ -101,9 +99,9 @@ public static class Program
         //} while (!shouldExit);
 
         //orchestrator example
-        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        await OrchestratorSimpleMathExampleAsync(serviceProvider);
         //await OrchestratorVideoExampleAsync(serviceProvider);
-        await SqlExampleAsync(serviceProvider);
+        //await SqlExampleAsync(serviceProvider);
     }
 
     private static async Task SqlExampleAsync(ServiceProvider serviceProvider)
@@ -193,10 +191,8 @@ public static class Program
         var tokenCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
         var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
         {
-            { "gpt-4", (0.06m/1000, 0.06m/1000) },           // GPT-4
-            { "gpt-4-turbo", (0.04m/1000, 0.04m/1000) },     // GPT-4 Turbo
-            { "gpt-4o", (0.08m/1000, 0.08m/1000) },           // GPT-4o
-            { "gpt-4o-mini", (0.03m/1000, 0.03m/1000) }         // GPT-4o Mini
+            { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
+            { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
         });
 
         var assistant = new SimpleChatAssistant("gpt4omini", kernelStore, conversation);
