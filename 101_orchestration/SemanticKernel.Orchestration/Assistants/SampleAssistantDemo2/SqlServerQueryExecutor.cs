@@ -10,6 +10,8 @@ namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
 
 public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
 {
+    private SqlServerSharedState _sharedState;
+
     public SqlServerQueryExecutor() : base("SqlServerSchemaAssistant")
     {
         RegisterFunctionDelegate(
@@ -18,6 +20,11 @@ public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
              async (args) => await ExecuteQuery(
                  args["databaseName"]?.ToString(),
                  args["query"].ToString()!));
+    }
+
+    public void InitializeWithSharedState(SqlServerSharedState sharedState)
+    {
+        _sharedState = sharedState;
     }
 
     private readonly SqlServerQueryExecutorState _state = new();

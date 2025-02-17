@@ -12,7 +12,7 @@ namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
 
 public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
 {
-    private readonly SqlServerSchemaAssistantState _state = new();
+    private SqlServerSharedState _sharedState;
 
     public SqlServerSchemaAssistant() : base("SqlServerSchemaAssistant")
     {
@@ -35,7 +35,10 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             isFinal: true);
     }
 
-    internal SqlServerSchemaAssistantState GetState() => _state;
+    public void InitializeWithSharedState(SqlServerSharedState sharedState)
+    {
+        _sharedState = sharedState;
+    }
 
     [Description("Get the list of the database in the server")]
     public Task<AssistantResponse> GetDatabaseList()
@@ -44,7 +47,7 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             .CreateQuery("SELECT name FROM sys.databases")
             .ExecuteList<string>();
 
-        _state.DataBaseList = databaseList;
+        _sharedState.SchemaState.DataBaseList = databaseList;
         return Task.FromResult(new AssistantResponse("retrieved list of database.", databaseList));
     }
 
@@ -52,7 +55,7 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
     public async Task<AssistantResponse> GetTableSchemaRepresentation(
      [Description("Name of the database")] string databaseName)
     {
-        if (!_state.DatabaseSchema.TryGetValue(databaseName, out var databaseSchema))
+        if (!_sharedState.SchemaState.DatabaseSchema.TryGetValue(databaseName, out var databaseSchema))
         {
             return new AssistantResponse("I don't have the schema of the database, please call RetrieveTableSchema first.");
         }
@@ -104,7 +107,7 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             .ToList();
 
         DatabaseSchema databaseSchema = new(tables);
-        _state.DatabaseSchema[databaseName] = databaseSchema;
+        _sharedState.SchemaState.DatabaseSchema[databaseName] = databaseSchema;
 
         return new AssistantResponse("retrieved list of tables.", databaseSchema);
     }
@@ -164,10 +167,4 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             return stringBuilder.ToString();
         }
     }
-
-    public record class TableNameInfo(string SchemaName, string TableName);
-    public record TableInfo(TableNameInfo TableNameInfo, IReadOnlyCollection<TableColumnInfo> Columns);
-    public record TableColumnInfo(string ColumnName, string DataType);
-
-    private record RawSchemaInfo(string SchemaName, string TableName, string ColumnName, string DataType);
 }

@@ -24,6 +24,7 @@ internal class SqlServerAssistant : BaseAssistant
     private readonly KernelStore _kernelStore;
     private readonly SqlServerSchemaAssistant _sqlServerSchemaAssistant;
     private readonly SqlServerQueryExecutor _sqlServerQueryExecutor;
+    private readonly SqlServerSharedState _sharedState;
     private const string DefaultModelName = "gpt4omini";
 
     private Dictionary<string, BaseAssistant> _subAssistants = new(StringComparer.OrdinalIgnoreCase);
@@ -35,6 +36,7 @@ internal class SqlServerAssistant : BaseAssistant
        [FromKeyedServices("sql")] SqlServerSchemaAssistant sqlServerSchemaAssistant,
        [FromKeyedServices("sql")] SqlServerQueryExecutor sqlServerQueryExecutor) : base("SqlServerAssistant")
     {
+        _sharedState = new SqlServerSharedState();
         _kernelStore = kernelStore;
         _sqlServerSchemaAssistant = sqlServerSchemaAssistant;
         _sqlServerQueryExecutor = sqlServerQueryExecutor;
@@ -42,6 +44,10 @@ internal class SqlServerAssistant : BaseAssistant
         _subAssistants["query"] = sqlServerQueryExecutor;
 
         DataAccess.SetConnectionString(sqlServerConfiguration.ConnectionString, "Microsoft.Data.SqlClient", NullLogger.Instance);
+
+        // Initialize sub-assistants with shared state
+        _sqlServerSchemaAssistant.InitializeWithSharedState(_sharedState);
+        _sqlServerQueryExecutor.InitializeWithSharedState(_sharedState);
 
         RegisterFunctionDelegate(
             "ExcuteDatabaseOperation",
@@ -118,10 +124,7 @@ You will be asked to perform a task, and you need to give the next step to do ex
 
 FACTS:");
 
-        var schemaState = _sqlServerSchemaAssistant.GetState();
-        prompt.AppendLine(schemaState.ToPromptFact());
-        var queryState = _sqlServerQueryExecutor.GetState();
-        prompt.AppendLine(queryState.ToPromptFact());
+        prompt.AppendLine(_sharedState.ToPromptFact());
         prompt.AppendLine("\nTask: " + task);
 
         var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new(settings), cancellationToken: cancellationToken);
