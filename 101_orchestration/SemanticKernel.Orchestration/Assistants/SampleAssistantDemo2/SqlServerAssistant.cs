@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernel.Orchestration.Configuration;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -87,9 +88,15 @@ If the question regards databases and you do not have information in the FACTS, 
                 }
             }
 
-            var settings = new PromptExecutionSettings
+            //var settings = new PromptExecutionSettings
+            //{
+            //    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
+            //};
+
+            var settings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false),
+                Temperature = 0,
             };
 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);

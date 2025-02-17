@@ -38,17 +38,34 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
     public void InitializeWithSharedState(SqlServerSharedState sharedState)
     {
         _sharedState = sharedState;
+        _sharedState.SetSchemaAssistant(this);
     }
 
     [Description("Get the list of the database in the server")]
     public Task<AssistantResponse> GetDatabaseList()
     {
+        var databaseList = InnerGetDatabaseList();
+        return Task.FromResult(new AssistantResponse("retrieved list of database.", databaseList));
+    }
+
+    /// <summary>
+    /// This is the inner function that get datbase list, is meant to be caller from 
+    /// other assistants.
+    /// </summary>
+    /// <returns></returns>
+    public IReadOnlyCollection<string> InnerGetDatabaseList()
+    {
+        //No need to get the list of db if we already have.
+        if (_sharedState.SchemaState.DataBaseList != null)
+        {
+            return _sharedState.SchemaState.DataBaseList;
+        }
         var databaseList = DataAccess
-            .CreateQuery("SELECT name FROM sys.databases")
-            .ExecuteList<string>();
+                    .CreateQuery("SELECT name FROM sys.databases")
+                    .ExecuteList<string>();
 
         _sharedState.SchemaState.DataBaseList = databaseList;
-        return Task.FromResult(new AssistantResponse("retrieved list of database.", databaseList));
+        return databaseList;
     }
 
     [Description("Get schema of tables of a database if you need the schema to answer a user question")]

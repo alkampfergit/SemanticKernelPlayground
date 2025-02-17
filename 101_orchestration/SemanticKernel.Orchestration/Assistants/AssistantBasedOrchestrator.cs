@@ -1,5 +1,6 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernel.Orchestration.Assistants.BaseAssistants;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
@@ -100,16 +101,16 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
 
             //add get property to the list
 
-            //var oaisettings = new OpenAIPromptExecutionSettings
-            //{
-            //    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false),
-            //    Temperature = 0,
-            //};
-
-            var settings = new PromptExecutionSettings
+            var settings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false),
+                Temperature = 0,
             };
+
+            //var settings = new PromptExecutionSettings
+            //{
+            //    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(functions, autoInvoke: false)
+            //};
 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(question, kernel, settings, cancellationToken);

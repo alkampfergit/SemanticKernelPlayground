@@ -1,3 +1,4 @@
+using OpenAI.Images;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -11,12 +12,29 @@ public class SqlServerSharedState
     public SqlServerSchemaAssistantState SchemaState { get; } = new();
     public SqlServerQueryExecutorState QueryState { get; } = new();
 
+    public SqlServerSchemaAssistant SchemaAssistant { get; private set; }
+    public SqlServerQueryExecutor QueryExecutor { get; private set; }
+
+    public void SetSchemaAssistant(SqlServerSchemaAssistant assistant) => SchemaAssistant = assistant;
+    public void SetQueryExecutor(SqlServerQueryExecutor executor) => QueryExecutor = executor;
+
+    public string CurrentDatabase { get; set; }
+
     public string ToPromptFact()
     {
         StringBuilder sb = new();
         sb.AppendLine(SchemaState.ToPromptFact());
         sb.AppendLine(QueryState.ToPromptFact());
+        if (!string.IsNullOrEmpty(CurrentDatabase))
+        {
+            sb.AppendLine($"User choose to work with database is {CurrentDatabase}");
+        }
         return sb.ToString();
+    }
+
+    internal void SetCurrentDatabase(string database)
+    {
+        CurrentDatabase = database;
     }
 }
 
