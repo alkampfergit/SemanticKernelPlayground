@@ -67,6 +67,7 @@ public static class Program
         var sqlServerConfiguration = new SqlServerConfiguration();
         serviceCollection.AddSingleton(sqlServerConfiguration);
         serviceCollection.AddKeyedTransient<SqlServerSchemaAssistant>("sql");
+        serviceCollection.AddKeyedTransient<SqlServerQueryExecutor>("sql");
         serviceCollection.AddKeyedTransient<SqlServerAssistant>("sql");
         serviceCollection.AddKeyedTransient("sql", (sp, key) =>
         {
@@ -99,9 +100,9 @@ public static class Program
         //} while (!shouldExit);
 
         //orchestrator example
-        await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
         //await OrchestratorVideoExampleAsync(serviceProvider);
-        //await SqlExampleAsync(serviceProvider);
+        await SqlExampleAsync(serviceProvider);
     }
 
     private static async Task SqlExampleAsync(ServiceProvider serviceProvider)

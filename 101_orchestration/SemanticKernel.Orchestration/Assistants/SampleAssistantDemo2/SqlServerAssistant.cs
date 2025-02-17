@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Configuration;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -22,16 +23,24 @@ internal class SqlServerAssistant : BaseAssistant
 {
     private readonly KernelStore _kernelStore;
     private readonly SqlServerSchemaAssistant _sqlServerSchemaAssistant;
+    private readonly SqlServerQueryExecutor _sqlServerQueryExecutor;
     private const string DefaultModelName = "gpt4omini";
+
+    private Dictionary<string, BaseAssistant> _subAssistants = new(StringComparer.OrdinalIgnoreCase);
 
     public SqlServerAssistant(
        IUserQuestionManager userQuestionManager,
        KernelStore kernelStore,
        SqlServerConfiguration sqlServerConfiguration,
-       [FromKeyedServices("sql")] SqlServerSchemaAssistant sqlServerSchemaAssistant) : base("SqlServerAssistant")
+       [FromKeyedServices("sql")] SqlServerSchemaAssistant sqlServerSchemaAssistant,
+       [FromKeyedServices("sql")] SqlServerQueryExecutor sqlServerQueryExecutor) : base("SqlServerAssistant")
     {
         _kernelStore = kernelStore;
         _sqlServerSchemaAssistant = sqlServerSchemaAssistant;
+        _sqlServerQueryExecutor = sqlServerQueryExecutor;
+        _subAssistants["schema"] = sqlServerSchemaAssistant;
+        _subAssistants["query"] = sqlServerQueryExecutor;
+
         DataAccess.SetConnectionString(sqlServerConfiguration.ConnectionString, "Microsoft.Data.SqlClient", NullLogger.Instance);
 
         RegisterFunctionDelegate(
@@ -59,13 +68,16 @@ If the question regards databases and you do not have information in the FACTS, 
 
             //I need to use the functino of the schema assistant in the prompt
             Dictionary<string, BaseAssistant> assistantMap = new();
-            foreach (var function in _sqlServerSchemaAssistant.GetFunctions())
+            foreach (var subAssistant in _subAssistants.Values)
             {
-                functions.Add(function.KernelFunction);
-                assistantMap[function.Name] = _sqlServerSchemaAssistant;
-                if (function.IsFinal)
+                foreach (var function in subAssistant.GetFunctions())
                 {
-                    finalFunctions.Add(function.Name);
+                    functions.Add(function.KernelFunction);
+                    assistantMap[function.Name] = subAssistant;
+                    if (function.IsFinal)
+                    {
+                        finalFunctions.Add(function.Name);
+                    }
                 }
             }
 
@@ -107,7 +119,9 @@ You will be asked to perform a task, and you need to give the next step to do ex
 FACTS:");
 
         var schemaState = _sqlServerSchemaAssistant.GetState();
-        prompt.AppendLine(schemaState.ToPromptFact());  
+        prompt.AppendLine(schemaState.ToPromptFact());
+        var queryState = _sqlServerQueryExecutor.GetState();
+        prompt.AppendLine(queryState.ToPromptFact());
         prompt.AppendLine("\nTask: " + task);
 
         var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new(settings), cancellationToken: cancellationToken);

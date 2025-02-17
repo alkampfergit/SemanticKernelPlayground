@@ -26,13 +26,6 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
              KernelFunctionFactory.CreateFromMethod(RetrieveTableSchema),
              async (args) => await RetrieveTableSchema(
                  args["databaseName"].ToString()!));
-        
-        RegisterFunctionDelegate(
-             "ExecuteQuery",
-             KernelFunctionFactory.CreateFromMethod(ExecuteQuery),
-             async (args) => await ExecuteQuery(
-                 args["databaseName"].ToString()!,
-                 args["query"].ToString()!));
 
         RegisterFunctionDelegate(
             "GetTableSchemaRepresentation",
@@ -116,28 +109,6 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
         return new AssistantResponse("retrieved list of tables.", databaseSchema);
     }
 
-    [Description("Query the database for table schema if you didn't already loaded")]
-    public async Task<AssistantResponse> ExecuteQuery(
-       [Description("Name of the database it can be null if the user still did not choose a database")] string? databaseName,
-       [Description("Query to execute in natural language")] string query)
-    {
-        var sqlStringBuilder = new SqlConnectionStringBuilder(DataAccess.ConnectionString.ConnectionString);
-        sqlStringBuilder.InitialCatalog = databaseName;
-
-        System.Configuration.ConnectionStringSettings localConnection = new(
-                $"SqlServer{databaseName}",
-                sqlStringBuilder.ConnectionString,
-                DataAccess.ConnectionString.ProviderName);
-
-        StringBuilder sb = new();
-         DataAccess
-            .CreateQueryOn(
-            localConnection,
-            query).ExecuteReader(dr => sb.AppendLine("record"));
-
-        return new AssistantResponse("QueryResult.", sb.ToString());
-    }
-
     public class SqlServerSchemaAssistantState
     {
         public IReadOnlyCollection<string> DataBaseList { get; set; }
@@ -151,7 +122,7 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
         {
             StringBuilder sb = new StringBuilder();
 
-            if(DataBaseList != null)
+            if (DataBaseList != null)
             {
                 sb.AppendLine("Database list:");
                 foreach (var db in DataBaseList)

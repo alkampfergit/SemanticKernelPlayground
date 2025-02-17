@@ -50,6 +50,8 @@ public class InterceptorContainer : IDisposable
     public IChatInterceptorTool[] Interceptors { get; }
     public IChatWrappingTool[] Wrappers { get; }
 
+    public Dictionary<string, object> Properties { get; } = new();
+
     public InterceptorContainer(
         IChatInterceptorTool[] interceptors,
         IChatWrappingTool[] wrappers)
