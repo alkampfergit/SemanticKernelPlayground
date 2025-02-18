@@ -1,13 +1,10 @@
-﻿using Jarvis.Common.Shared.Utils.SqlUtils;
-using Microsoft.Data.SqlClient;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Orchestrators;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
@@ -63,7 +60,7 @@ public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
         //ok now we are sure that database is the currect one and also that we have the schema
         string realQuery = query;
         if (missingData)
-        { 
+        {
             //if we have missing data it means that the query we received is probably not generated
             //from a schema, so we need to rewrite.
             realQuery = await RewriteQuery(query, databaseSchema);
@@ -97,7 +94,7 @@ User Query: {query}";
         var result = await smartKernel.InvokePromptAsync(prompt, new(settings));
         var content = result.GetValue<ChatMessageContent>();
         var functionResponse = content.Items.OfType<FunctionCallContent>().SingleOrDefault();
-        
+
         return functionResponse.Arguments["query"].ToString();
     }
 

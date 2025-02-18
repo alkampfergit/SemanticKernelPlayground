@@ -31,6 +31,11 @@ public class ModelTokenUsage
 
 public class TokenUsageCounter : IChatInterceptorTool
 {
+    public TokenUsageCounter()
+    {
+            
+    }
+
     private readonly Dictionary<string, ModelTokenUsage> _modelUsage = new();
     private int _callCount = 0;
 

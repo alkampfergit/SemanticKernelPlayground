@@ -100,9 +100,25 @@ public static class Program
         //} while (!shouldExit);
 
         //orchestrator example
-        //await OrchestratorSimpleMathExampleAsync(serviceProvider);
-        //await OrchestratorVideoExampleAsync(serviceProvider);
-        await SqlExampleAsync(serviceProvider);
+        var userQuestionManager = serviceProvider.GetRequiredService<IUserQuestionManager>();
+        var example = await userQuestionManager.AskForSelectionAsync("Which example you want to run?", ["Math", "Video", "SQL"]);
+
+        if (example == "Math")
+        {
+            await OrchestratorSimpleMathExampleAsync(serviceProvider);
+        }
+        else if (example == "Video")
+        {
+            await OrchestratorVideoExampleAsync(serviceProvider);
+        }
+        else if (example == "SQL")
+        {
+            await SqlExampleAsync(serviceProvider);
+        }
+        else
+        {
+            Console.WriteLine("Invalid selection");
+        }
     }
 
     private static async Task SqlExampleAsync(ServiceProvider serviceProvider)
@@ -133,9 +149,9 @@ public static class Program
 
     private static async Task BasicOrchestratorCycle(AssistantBasedOrchestrator orchestrator, KernelStore kernelStore)
     {
+        using var scope = kernelStore.StartContainerScope();
         while (true)
         {
-            using var scope = kernelStore.StartContainerScope();
             Console.Write("\nAsk a question (press Enter or type 'exit' to quit): ");
             var question = Console.ReadLine();
 
@@ -161,9 +177,9 @@ public static class Program
     {
         var orchestrator = serviceProvider.GetRequiredService<AssistantBasedOrchestrator>();
         var kernelStore = serviceProvider.GetRequiredService<KernelStore>();
+        using var scope = kernelStore.StartContainerScope();
         while (true)
         {
-            using var scope = kernelStore.StartContainerScope();
             Console.Write("\nAsk a question (press Enter or type 'exit' to quit): ");
             var question = Console.ReadLine();
 

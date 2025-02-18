@@ -66,6 +66,13 @@ If the question regards databases and you do not have information in the FACTS, 
     {
         //here we orchestrate the work of the assistants
         var kernel = _kernelStore.GetKernel(DefaultModelName);
+
+        var tokenCounter = _kernelStore.GetInterceptor<TokenUsageCounter>();
+        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
+        {
+            { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
+            { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
+        });
         while (true)
         {
             //now we need to enter a cycle where we ask the kernel to solve a sql task
@@ -101,6 +108,8 @@ If the question regards databases and you do not have information in the FACTS, 
 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(operationToExecute, kernel, settings, CancellationToken.None);
+            var report = usagePrinter.GetUsageReport();
+            Console.WriteLine("SQL ASSISTANT:\n{0}", report);
 
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
