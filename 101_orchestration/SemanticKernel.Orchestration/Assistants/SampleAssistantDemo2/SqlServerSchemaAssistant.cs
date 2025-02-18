@@ -84,6 +84,18 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
     public async Task<AssistantResponse> RetrieveTableSchema(
         [Description("Name of the database")] string databaseName)
     {
+        DatabaseSchema databaseSchema = InnerGetDatabaseSchema(databaseName);
+        return new AssistantResponse("retrieved list of tables.", databaseSchema);
+    }
+
+    public DatabaseSchema InnerGetDatabaseSchema(string databaseName)
+    {
+        //Check if we already has the schema, if not need to retrieve again
+        if (_sharedState.SchemaState.DatabaseSchema.TryGetValue(databaseName, out var databaseSchema))
+        {
+            return databaseSchema;
+        }
+
         var sqlStringBuilder = new SqlConnectionStringBuilder(DataAccess.ConnectionString.ConnectionString);
         sqlStringBuilder.InitialCatalog = databaseName;
 
@@ -123,10 +135,9 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
                 .ToList()))
             .ToList();
 
-        DatabaseSchema databaseSchema = new(tables);
+        databaseSchema = new(tables);
         _sharedState.SchemaState.DatabaseSchema[databaseName] = databaseSchema;
-
-        return new AssistantResponse("retrieved list of tables.", databaseSchema);
+        return databaseSchema;
     }
 
     public class SqlServerSchemaAssistantState
