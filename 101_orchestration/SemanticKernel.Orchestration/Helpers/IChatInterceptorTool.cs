@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
@@ -27,7 +28,7 @@ public interface IChatInterceptorTool
 /// and if it returns a NON null response, that response will be returned to 
 /// the caller, this will allow for testing and some advanced scenario
 /// </summary>
-public interface IChatWrappingTool 
+public interface IChatWrappingTool
 {
     /// <summary>
     /// This method will be called before the real chat implementation and if
@@ -47,8 +48,11 @@ public interface IChatWrappingTool
 
 public class InterceptorContainer : IDisposable
 {
-    public IChatInterceptorTool[] Interceptors { get; }
-    public IChatWrappingTool[] Wrappers { get; }
+    public IReadOnlyCollection<IChatInterceptorTool> Interceptors => _interceptors;
+    private readonly List<IChatInterceptorTool> _interceptors;
+
+    public IReadOnlyCollection<IChatWrappingTool> Wrappers => _wrappers;
+    private readonly List<IChatWrappingTool> _wrappers;
 
     public Dictionary<string, object> Properties { get; } = new();
 
@@ -56,8 +60,13 @@ public class InterceptorContainer : IDisposable
         IChatInterceptorTool[] interceptors,
         IChatWrappingTool[] wrappers)
     {
-        Interceptors = interceptors;
-        Wrappers = wrappers;
+        _interceptors = interceptors.ToList();
+        _wrappers = wrappers.ToList();
+    }
+
+    internal void AddWrapper(IChatWrappingTool callLimiterTool)
+    {
+        _wrappers.Add(callLimiterTool);
     }
 
     public void Dispose()

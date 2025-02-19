@@ -74,12 +74,6 @@ If the question regards databases and you do not have information in the FACTS, 
         //here we orchestrate the work of the assistants
         var kernel = _kernelStore.GetKernel(DefaultModelName);
 
-        var tokenCounter = _kernelStore.GetInterceptor<TokenUsageCounter>();
-        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
-        {
-            { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
-            { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
-        });
         while (true)
         {
             //now we need to enter a cycle where we ask the kernel to solve a sql task
@@ -115,8 +109,6 @@ If the question regards databases and you do not have information in the FACTS, 
 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(operationToExecute, kernel, settings, CancellationToken.None);
-            var report = usagePrinter.GetUsageReport();
-            Console.WriteLine(report.FormattedReport);
 
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
@@ -135,7 +127,7 @@ If the question regards databases and you do not have information in the FACTS, 
     }
 
     private async Task<ChatMessageContent> PerformCallWithSimplePromptModel(
-        string task,
+        string question,
         Kernel kernel,
         PromptExecutionSettings settings,
         CancellationToken cancellationToken)
@@ -143,12 +135,13 @@ If the question regards databases and you do not have information in the FACTS, 
         StringBuilder prompt = new();
         prompt.AppendLine(
             @"You are a sql server assistant, capable of performing query and various operation on the database.
-You will be asked to perform a task, and you need to give the next step to do examining the facts that are given to you.
+You will be asked to answer to a question. You can use the FACTS that follows to answer the question.
+If Facts does not contains data to answer you can call functions to get more FACTS.
 
 FACTS:");
 
         prompt.AppendLine(_sharedState.ToPromptFact());
-        prompt.AppendLine("\nTask: " + task);
+        prompt.AppendLine("\nQuestion: " + question);
 
         var functionResult = await kernel.InvokePromptAsync(prompt.ToString(), new(settings), cancellationToken: cancellationToken);
         return functionResult.GetValue<ChatMessageContent>()!;

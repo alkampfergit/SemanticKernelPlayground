@@ -70,12 +70,9 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
 
     public async Task<string> AskAsync(string question, CancellationToken cancellationToken = default)
     {
-        var tokenCounter = _kernelStore.GetInterceptor<TokenUsageCounter>();
-        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
-        {
-            { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
-            { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
-        });
+        var containerScope = KernelStore.GetActiveContainer();
+        containerScope.AddWrapper(new CallLimiterTool(40));
+        
         while (true)
         {
             var kernel = _kernelStore.GetKernel(DefaultModelName);
@@ -114,11 +111,7 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(question, kernel, settings, cancellationToken);
-
-            //print token usage
-            var report = usagePrinter.GetUsageReport();
-            Console.WriteLine(report.FormattedReport);
-            
+          
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
             {
@@ -128,6 +121,7 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
             var assistantToCall = assistantMap[response.FunctionName];
             var assistantFunctionCallResult = await assistantToCall.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
             _responses.Add((assistantToCall, assistantFunctionCallResult));
+
             if (finalFunctions.Contains(response.FunctionName))
             {
                 return assistantFunctionCallResult.Result;

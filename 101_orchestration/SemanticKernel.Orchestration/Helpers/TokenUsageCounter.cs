@@ -1,3 +1,4 @@
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -55,6 +56,13 @@ public class TokenUsageCounter : IChatInterceptorTool
 
     public ModelTokenUsage ModelTokenUsage { get; private set; } = new();
 
+    private TokenUsagePrinter _usagePrinter;
+
+    public void SetUsagePrinter(TokenUsagePrinter usagePrinter)
+    {
+        _usagePrinter = usagePrinter;
+    }
+
     private string GetModelName(OpenAIChatMessageContent message)
     {
         if (message.InnerContent is OpenAI.Chat.ChatCompletion chatCompletion)
@@ -103,6 +111,7 @@ public class TokenUsageCounter : IChatInterceptorTool
             }
         }
 
+        _usagePrinter?.Print(this);
         return Task.CompletedTask;
     }
 }

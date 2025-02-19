@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -11,26 +12,27 @@ public record TokenUsageReport(
 
 public class TokenUsagePrinter
 {
-    private readonly TokenUsageCounter _counter;
     private readonly Dictionary<string, (decimal InputCost, decimal OutputCost)> _modelCosts;
 
     public TokenUsagePrinter(
-        TokenUsageCounter counter,
         Dictionary<string, (decimal InputCost, decimal OutputCost)>? modelCosts = null)
     {
-        _counter = counter;
         _modelCosts = modelCosts ?? new Dictionary<string, (decimal, decimal)>();
     }
 
-    public TokenUsageReport GetUsageReport()
+    public void Print(TokenUsageCounter tokenUsageCounter)
+    {
+        var report = GetUsageReport(tokenUsageCounter);
+        Console.WriteLine(report.FormattedReport);
+    }
+
+    public TokenUsageReport GetUsageReport(TokenUsageCounter tokenUsageCounter)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("\nToken usage per model:");
-
         decimal totalCost = 0m;
         decimal lastCallCost = 0m;
-
-        foreach (var modelUsage in _counter.ModelTokenUsage.ModelUsageList)
+        sb.AppendLine($"\nTotal calls: {tokenUsageCounter.CallCount}");
+        foreach (var modelUsage in tokenUsageCounter.ModelTokenUsage.ModelUsageList)
         {
             var model = modelUsage.Key;
             var usage = modelUsage.Value;
@@ -58,17 +60,17 @@ public class TokenUsagePrinter
         }
 
         // Last call statistics
-        if (_counter.ModelTokenUsage.LastCallModel != null)
+        if (tokenUsageCounter.ModelTokenUsage.LastCallModel != null)
         {
-            var lastCallModel = _counter.ModelTokenUsage.LastCallModel;
-            var lastCallUsage = _counter.ModelTokenUsage;
+            var lastCallModel = tokenUsageCounter.ModelTokenUsage.LastCallModel;
+            var lastCallUsage = tokenUsageCounter.ModelTokenUsage;
             if (_modelCosts.TryGetValue(lastCallModel, out var costs))
             {
                 lastCallCost = (lastCallUsage.LastCallPromptTokens * costs.InputCost) +
                                 (lastCallUsage.LastCallCompletionTokens * costs.OutputCost);
             }
-            sb.Append($"\nLast call model: {lastCallModel}");
-            sb.Append($" Total: {lastCallUsage.LastCallTotalTokens}, " +
+            sb.Append($"Last call model: {lastCallModel}");
+            sb.Append($"Total: {lastCallUsage.LastCallTotalTokens}, " +
                           $" Prompt: {lastCallUsage.LastCallPromptTokens}, " +
                           $" Completion: {lastCallUsage.LastCallCompletionTokens}");
             if (lastCallCost > 0)
@@ -78,7 +80,6 @@ public class TokenUsagePrinter
             sb.AppendLine();
         }
 
-        sb.AppendLine($"\nTotal calls: {_counter.CallCount}");
         sb.AppendLine($"Total cost across all models: ${totalCost:F8}");
 
         return new TokenUsageReport(sb.ToString(), totalCost, lastCallCost);

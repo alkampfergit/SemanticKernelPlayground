@@ -152,9 +152,20 @@ public static class Program
 
     private static async Task BasicOrchestratorCycle(AssistantBasedOrchestrator orchestrator, KernelStore kernelStore)
     {
-        using var scope = kernelStore.StartContainerScope();
         while (true)
         {
+            using var scope = kernelStore.StartContainerScope();
+            var tokenUsageCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
+            if (tokenUsageCounter != null)
+            {
+                var usagePrinter = new TokenUsagePrinter(new Dictionary<string, (decimal, decimal)>
+                {
+                    { "gpt-4o", (2.39924m / 1_000_000, 9.5970m / 1_000_000) },           // GPT-4o
+                    { "gpt-4o-mini", (00.14396m / 1_000_000, 0.5759m / 1_000_000) }         // GPT-4o Mini
+                });
+                tokenUsageCounter.SetUsagePrinter(usagePrinter);
+            }
+
             Console.Write("\nAsk a question (press Enter or type 'exit' to quit): ");
             var question = Console.ReadLine();
 
@@ -209,11 +220,12 @@ public static class Program
         IConversation? conversation = null)
     {
         var tokenCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
-        var usagePrinter = new TokenUsagePrinter(tokenCounter, new Dictionary<string, (decimal, decimal)>
+        var usagePrinter = new TokenUsagePrinter( new Dictionary<string, (decimal, decimal)>
         {
             { "gpt-4o", (2.39924m/1_000_000, 9.5970m/1_000_000) },           // GPT-4o
             { "gpt-4o-mini", (00.14396m/1_000_000, 0.5759m/1_000_000) }         // GPT-4o Mini
         });
+        tokenCounter.SetUsagePrinter(usagePrinter);
 
         var assistant = new SimpleChatAssistant("gpt4omini", kernelStore, conversation);
         while (true)
@@ -238,9 +250,6 @@ public static class Program
 
             var response = await assistant.SendMessageAsync(userInput);
             Console.WriteLine("\nAssistant: " + response);
-
-            var usageReport = usagePrinter.GetUsageReport();
-            Console.WriteLine(usageReport.FormattedReport);
         }
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Helpers.SqlUtils;
+using SemanticKernel.Orchestration.Orchestrators;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,8 +15,9 @@ namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
 public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
 {
     private SqlServerSharedState _sharedState;
+    private readonly KernelStore _kernelStore;
 
-    public SqlServerSchemaAssistant() : base("SqlServerSchemaAssistant")
+    public SqlServerSchemaAssistant(KernelStore kernelStore) : base("SqlServerSchemaAssistant")
     {
         RegisterFunctionDelegate(
              "GetDatabaseList",
@@ -32,8 +34,10 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             "GetTableSchemaRepresentation",
             KernelFunctionFactory.CreateFromMethod(GetTableSchemaRepresentation),
             async (args) => await GetTableSchemaRepresentation(
-                args["databaseName"].ToString()!),
+                args["databaseName"].ToString()!,
+                args["userQuestion"].ToString()!),
             isFinal: true);
+        _kernelStore = kernelStore;
     }
 
     public void InitializeWithSharedState(SqlServerSharedState sharedState)
@@ -71,14 +75,25 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
 
     [Description("Get schema of tables of a database if you need the schema to answer a user question")]
     public async Task<AssistantResponse> GetTableSchemaRepresentation(
-     [Description("Name of the database")] string databaseName)
+        [Description("Name of the database")] string databaseName,
+        [Description("The question of the user regarding the schema")]string userQuestion)
     {
         if (!_sharedState.SchemaState.DatabaseSchema.TryGetValue(databaseName, out var databaseSchema))
         {
-            return new AssistantResponse("I don't have the schema of the database, please call RetrieveTableSchema first.");
+            InnerGetDatabaseSchema(databaseName);
         }
 
-        return databaseSchema.ToPrompt();
+        //ok the user wants an answer for the schema, we need to call an llm to answer
+        var kernel = _kernelStore.GetKernel("gpt4omini");
+        var answer = await kernel.InvokePromptAsync($@"You will answer the user question using the information of database schema that 
+are contained in the prompt, you should never use anything else than the included schema to answer the question
+
+question: {userQuestion}
+
+SCHEMA:
+{databaseSchema.ToPrompt()}");
+
+        return new AssistantResponse(answer.ToString(), TerminateCycle:true);   
     }
 
     [Description("Query the database for table schema if you didn't already loaded")]
