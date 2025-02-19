@@ -8,39 +8,52 @@ using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Helpers;
 
-public class ModelTokenUsage
+public class SingleModelTokenUsage 
 {
     public int TotalTokens { get; private set; }
     public int PromptTokens { get; private set; }
     public int CompletionTokens { get; private set; }
-    public int LastTotalTokens { get; private set; }
-    public int LastPromptTokens { get; private set; }
-    public int LastCompletionTokens { get; private set; }
 
     internal void AddUsage(OpenAI.Chat.ChatTokenUsage usage)
     {
-        LastTotalTokens = usage.TotalTokenCount;
-        LastPromptTokens = usage.InputTokenCount;
-        LastCompletionTokens = usage.OutputTokenCount;
-
         TotalTokens += usage.TotalTokenCount;
         PromptTokens += usage.InputTokenCount;
         CompletionTokens += usage.OutputTokenCount;
     }
 }
 
+public class ModelTokenUsage
+{
+    private Dictionary<string, SingleModelTokenUsage> _modelUsage = new();
+
+    public IReadOnlyDictionary<string, SingleModelTokenUsage> ModelUsageList => _modelUsage;
+
+    public string LastCallModel { get; set; }
+
+    public int LastCallTotalTokens { get; set; }
+    public int LastCallPromptTokens { get; set; }
+    public int LastCallCompletionTokens { get; set; }
+
+    internal void AddUsage(string modelName, OpenAI.Chat.ChatTokenUsage usage)
+    {
+        if (!_modelUsage.TryGetValue(modelName, out var singleModelUsage))
+        {
+            _modelUsage[modelName] = singleModelUsage = new SingleModelTokenUsage();
+        }
+
+        singleModelUsage.AddUsage(usage);
+        LastCallModel = modelName;
+        LastCallTotalTokens = usage.TotalTokenCount;
+        LastCallPromptTokens = usage.InputTokenCount;
+        LastCallCompletionTokens = usage.OutputTokenCount;
+    }
+}
+
 public class TokenUsageCounter : IChatInterceptorTool
 {
-    public TokenUsageCounter()
-    {
-            
-    }
+    public int CallCount { get; private set; }
 
-    private readonly Dictionary<string, ModelTokenUsage> _modelUsage = new();
-    private int _callCount = 0;
-
-    public int CallCount => _callCount;
-    public IReadOnlyDictionary<string, ModelTokenUsage> ModelUsage => _modelUsage;
+    public ModelTokenUsage ModelTokenUsage { get; private set; } = new();
 
     private string GetModelName(OpenAIChatMessageContent message)
     {
@@ -75,7 +88,7 @@ public class TokenUsageCounter : IChatInterceptorTool
         Kernel? kernel,
         CancellationToken cancellationToken)
     {
-        _callCount++;
+        CallCount++;
 
         foreach (var item in returnValue)
         {
@@ -85,13 +98,7 @@ public class TokenUsageCounter : IChatInterceptorTool
                     && completionUsage is OpenAI.Chat.ChatTokenUsage usage)
                 {
                     string modelName = GetModelName(ocmc);
-
-                    if (!_modelUsage.ContainsKey(modelName))
-                    {
-                        _modelUsage[modelName] = new ModelTokenUsage();
-                    }
-
-                    _modelUsage[modelName].AddUsage(usage);
+                    ModelTokenUsage.AddUsage(modelName, usage);
                 }
             }
         }
@@ -99,4 +106,3 @@ public class TokenUsageCounter : IChatInterceptorTool
         return Task.CompletedTask;
     }
 }
-

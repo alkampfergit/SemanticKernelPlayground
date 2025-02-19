@@ -73,6 +73,7 @@ public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
 
         var markdown = ConvertDatasetToMarkdown(result);
         SetGlobalProperty("queryresult", markdown);
+        _kernelStore.SetProperty("queryresult", result);
         return new AssistantResponse("Query executed, result is in variable queryresult", markdown, true);
     }
 

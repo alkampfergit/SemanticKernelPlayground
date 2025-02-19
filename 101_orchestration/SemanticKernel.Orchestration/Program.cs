@@ -69,12 +69,15 @@ public static class Program
         serviceCollection.AddKeyedTransient<SqlServerSchemaAssistant>("sql");
         serviceCollection.AddKeyedTransient<SqlServerQueryExecutor>("sql");
         serviceCollection.AddKeyedTransient<SqlServerAssistant>("sql");
+        serviceCollection.AddKeyedTransient<ExcelAssistant>("sql");
         serviceCollection.AddKeyedTransient("sql", (sp, key) =>
         {
             var abo = new AssistantBasedOrchestrator(sp.GetRequiredService<KernelStore>());
             var allSqlAssistants = sp.GetRequiredKeyedService<SqlServerAssistant>("sql");
             abo.AddAssistant(allSqlAssistants);
             abo.AddAssistant(new AudioVideoAssistant());
+            var excelAssistant = sp.GetRequiredKeyedService<ExcelAssistant>("sql");
+            abo.AddAssistant(excelAssistant);
             return abo;
         });
 

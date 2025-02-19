@@ -162,6 +162,29 @@ public class KernelStore
         _currentContainer.Value = null;
     }
 
+    internal void SetProperty(string propertyName, object value)
+    {
+        var container = _currentContainer.Value;
+        if (container == null)
+        {
+            //TODO: Log
+            return;
+        }
+
+        container.Properties[propertyName] = value;
+    }
+
+    internal IReadOnlyCollection<T> GetAllPropertyValues<T>() where T : class
+    {
+        var container = _currentContainer.Value;
+        if (container == null)
+        {
+            return Array.Empty<T>();
+        }
+
+        return container.Properties.Values.OfType<T>().ToArray();
+    }
+
     internal T? GetInterceptor<T>() where T : class
     {
         var container = _currentContainer.Value;

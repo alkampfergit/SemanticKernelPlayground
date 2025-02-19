@@ -117,7 +117,7 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
 
             //print token usage
             var report = usagePrinter.GetUsageReport();
-            Console.WriteLine(report);
+            Console.WriteLine(report.FormattedReport);
             
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)

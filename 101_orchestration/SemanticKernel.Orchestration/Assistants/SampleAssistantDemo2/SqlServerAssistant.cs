@@ -116,7 +116,7 @@ If the question regards databases and you do not have information in the FACTS, 
             //ChatMessageContent result = await PerformCallWithChatModel(question, kernel, settings, cancellationToken);
             ChatMessageContent result = await PerformCallWithSimplePromptModel(operationToExecute, kernel, settings, CancellationToken.None);
             var report = usagePrinter.GetUsageReport();
-            Console.WriteLine("SQL ASSISTANT:\n{0}", report);
+            Console.WriteLine(report.FormattedReport);
 
             var response = result.Items.OfType<FunctionCallContent>().SingleOrDefault();
             if (response == null)
