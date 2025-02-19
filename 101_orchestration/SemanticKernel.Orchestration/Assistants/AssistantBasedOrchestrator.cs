@@ -195,5 +195,6 @@ FACTS FOLLOW");
 public interface IConversationOrchestrator
 {
     void AddProperty(string propertyName, string value);
+
     string? GetProperty([Description("Property name")] string propertyName);
 }

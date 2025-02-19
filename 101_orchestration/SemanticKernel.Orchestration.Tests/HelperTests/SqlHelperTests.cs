@@ -22,7 +22,7 @@ public class SqlHelperTests
 
     public SqlHelperTests()
     {
-        _sut = new SqlServerSchemaAssistant();
+        _sut = new SqlServerSchemaAssistant(new Orchestrators.KernelStore(null));
     }
 
     [Fact]

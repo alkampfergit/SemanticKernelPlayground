@@ -3,7 +3,6 @@ using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Helpers;
 using SemanticKernel.Orchestration.Helpers.SqlUtils;
 using SemanticKernel.Orchestration.Orchestrators;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -71,10 +70,11 @@ public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
             .CreateQueryOn(newConnection, realQuery)
             .ExecuteDataset();
 
+        var name = await _userQuestionManager.AskQuestionAsync("Give me a name for the result of the query");
         var markdown = ConvertDatasetToMarkdown(result);
-        SetGlobalProperty("queryresult", markdown);
-        _kernelStore.SetProperty("queryresult", result);
-        return new AssistantResponse("Query executed, result is in variable queryresult", markdown, true);
+        SetGlobalProperty(name, markdown);
+        KernelStore.SetProperty(name, result);
+        return new AssistantResponse($"Query executed, result is in variable {name}", markdown, true);
     }
 
     private string ConvertDatasetToMarkdown(DataSet dataSet)

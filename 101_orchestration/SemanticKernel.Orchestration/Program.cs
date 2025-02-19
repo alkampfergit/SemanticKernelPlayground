@@ -152,9 +152,9 @@ public static class Program
 
     private static async Task BasicOrchestratorCycle(AssistantBasedOrchestrator orchestrator, KernelStore kernelStore)
     {
+        using var scope = kernelStore.StartContainerScope();
         while (true)
         {
-            using var scope = kernelStore.StartContainerScope();
             var tokenUsageCounter = kernelStore.GetInterceptor<TokenUsageCounter>();
             if (tokenUsageCounter != null)
             {

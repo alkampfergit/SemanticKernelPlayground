@@ -28,7 +28,7 @@ class ExcelAssistant : BaseAssistant
     [Description("Export a dataset to an excel file")]
     private async Task<AssistantResponse> ExportDataset()
     {
-        var datasets = _kernelStore.GetAllPropertyValues<DataSet>();
+        var datasets = KernelStore.GetAllPropertyValues<DataSet>();
         if (datasets.Count == 0)
         {
             return new AssistantResponse("No dataset found in the current conversation");
@@ -38,9 +38,11 @@ class ExcelAssistant : BaseAssistant
         var tempFilePath = Path.Combine(Path.GetTempPath(), "exported_dataset.xlsx");
         foreach (var dataset in datasets)
         {
-            foreach (DataTable table in dataset.Tables)
+            var prefix = dataset.Key;
+            foreach (DataTable table in dataset.Value.Tables)
             {
-                var worksheet = package.Workbook.Worksheets.Add(table.TableName);
+                var worksheetName = $"{prefix}_{table.TableName}";
+                var worksheet = package.Workbook.Worksheets.Add(worksheetName);
                 worksheet.Cells["A1"].LoadFromDataTable(table, true);
             }
         }

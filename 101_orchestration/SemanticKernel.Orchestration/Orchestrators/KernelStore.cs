@@ -162,7 +162,7 @@ public class KernelStore
         _currentContainer.Value = null;
     }
 
-    internal void SetProperty(string propertyName, object value)
+    internal static void SetProperty(string propertyName, object value)
     {
         var container = _currentContainer.Value;
         if (container == null)
@@ -174,15 +174,18 @@ public class KernelStore
         container.Properties[propertyName] = value;
     }
 
-    internal IReadOnlyCollection<T> GetAllPropertyValues<T>() where T : class
+    internal static IReadOnlyCollection<(string Key, T Value)> GetAllPropertyValues<T>() where T : class
     {
         var container = _currentContainer.Value;
         if (container == null)
         {
-            return Array.Empty<T>();
+            return Array.Empty<(string, T)>();
         }
 
-        return container.Properties.Values.OfType<T>().ToArray();
+        return container.Properties
+            .Where(kvp => kvp.Value is T)
+            .Select(kvp => (kvp.Key, (T) kvp.Value))
+            .ToArray();
     }
 
     internal T? GetInterceptor<T>() where T : class
