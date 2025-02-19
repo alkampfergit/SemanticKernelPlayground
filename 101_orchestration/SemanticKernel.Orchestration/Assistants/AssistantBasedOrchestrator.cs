@@ -132,6 +132,11 @@ public class AssistantBasedOrchestrator : IConversationOrchestrator
             {
                 return assistantFunctionCallResult.Result;
             }
+
+            if (assistantFunctionCallResult.TerminateCycle)
+            {
+                return assistantFunctionCallResult.State is string s ? s : assistantFunctionCallResult.Result;
+            }
         }
     }
 

@@ -31,7 +31,7 @@ public abstract class BaseAssistant : IConversationOrchestrator
 
     public virtual string InjectedPrompt => string.Empty;
 
-    internal void SetOrchestrator(IConversationOrchestrator orchestrator)
+    internal virtual void SetOrchestrator(IConversationOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
     }

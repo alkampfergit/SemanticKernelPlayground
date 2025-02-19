@@ -1,6 +1,7 @@
 ﻿using Jarvis.Common.Shared.Utils.SqlUtils;
 using Microsoft.Data.SqlClient;
 using Microsoft.SemanticKernel;
+using SemanticKernel.Orchestration.Helpers.SqlUtils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -96,17 +97,11 @@ public class SqlServerSchemaAssistant : BaseAssistant, IConversationOrchestrator
             return databaseSchema;
         }
 
-        var sqlStringBuilder = new SqlConnectionStringBuilder(DataAccess.ConnectionString.ConnectionString);
-        sqlStringBuilder.InitialCatalog = databaseName;
-
-        System.Configuration.ConnectionStringSettings localConnection = new(
-                $"SqlServer{databaseName}",
-                sqlStringBuilder.ConnectionString,
-                DataAccess.ConnectionString.ProviderName);
+        var newConnection = ConnectionManager.ChangeDatabase(DataAccess.ConnectionString, databaseName);
 
         var tableList = DataAccess
             .CreateQueryOn(
-            localConnection,
+            newConnection,
             @"SELECT
                 s.name AS SchemaName,
                 t.name AS TableName,

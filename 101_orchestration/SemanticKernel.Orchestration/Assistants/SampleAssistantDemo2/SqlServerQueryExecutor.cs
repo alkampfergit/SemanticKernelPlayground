@@ -1,10 +1,14 @@
-﻿using Microsoft.SemanticKernel;
+﻿using Jarvis.Common.Shared.Utils.SqlUtils;
+using Microsoft.SemanticKernel;
 using SemanticKernel.Orchestration.Helpers;
+using SemanticKernel.Orchestration.Helpers.SqlUtils;
 using SemanticKernel.Orchestration.Orchestrators;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2;
@@ -58,15 +62,53 @@ public class SqlServerQueryExecutor : BaseAssistant, IConversationOrchestrator
         }
 
         //ok now we are sure that database is the currect one and also that we have the schema
-        string realQuery = query;
-        if (missingData)
+        string realQuery = await RewriteQuery(query, databaseSchema);
+
+        //now execute the query and return the result
+        var newConnection = ConnectionManager.ChangeDatabase(DataAccess.ConnectionString, databaseName);
+
+        var result = DataAccess
+            .CreateQueryOn(newConnection, realQuery)
+            .ExecuteDataset();
+
+        var markdown = ConvertDatasetToMarkdown(result);
+        SetGlobalProperty("queryresult", markdown);
+        return new AssistantResponse("Query executed, result is in variable queryresult", markdown, true);
+    }
+
+    private string ConvertDatasetToMarkdown(DataSet dataSet)
+    {
+        var table = dataSet.Tables[0];
+        StringBuilder markdown = new StringBuilder();
+
+        // Append header row
+        for (int i = 0; i < table.Columns.Count; i++)
         {
-            //if we have missing data it means that the query we received is probably not generated
-            //from a schema, so we need to rewrite.
-            realQuery = await RewriteQuery(query, databaseSchema);
+            markdown.Append($"| {table.Columns[i].ColumnName} ");
+        }
+        markdown.AppendLine("|");
+
+        // Append separator row
+        for (int i = 0; i < table.Columns.Count; i++)
+        {
+            markdown.Append("|---");
+        }
+        markdown.AppendLine("|");
+
+        // Append data rows
+        foreach (DataRow row in table.Rows)
+        {
+            for (int i = 0; i < table.Columns.Count; i++)
+            {
+                var cell = row[i]?.ToString() ?? string.Empty;
+                // Escape pipe characters in the cell
+                cell = cell.Replace("|", "\\|");
+                markdown.Append($"| {cell} ");
+            }
+            markdown.AppendLine("|");
         }
 
-        throw new NotImplementedException();
+        return markdown.ToString();
     }
 
     private async Task<string> RewriteQuery(string query, SqlServerSchemaAssistant.DatabaseSchema databaseSchema)

@@ -56,6 +56,13 @@ internal class SqlServerAssistant : BaseAssistant
             async (args) => await ExcuteDatabaseOperation(args["operationToExecute"].ToString()!));
     }
 
+    internal override void SetOrchestrator(IConversationOrchestrator orchestrator)
+    {
+        base.SetOrchestrator(orchestrator);
+        _sqlServerQueryExecutor.SetOrchestrator(orchestrator);
+        _sqlServerSchemaAssistant.SetOrchestrator(orchestrator);
+    }
+
     public override string InjectedPrompt => @"
 If the question regards databases and you do not have information in the FACTS, you can call ExcuteDatabaseOperation";
 
@@ -120,7 +127,7 @@ If the question regards databases and you do not have information in the FACTS, 
             var assistant = assistantMap[response.FunctionName];
             var assistantFunctionCallResult = await assistant.ExecuteFunctionAsync(response.FunctionName, response.Arguments);
 
-            if (finalFunctions.Contains(response.FunctionName))
+            if (finalFunctions.Contains(response.FunctionName) || assistantFunctionCallResult.TerminateCycle)
             {
                 return assistantFunctionCallResult;
             }

@@ -1,6 +1,7 @@
 using OpenAI.Images;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 using static SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2.SqlServerQueryExecutor;
 using static SemanticKernel.Orchestration.Assistants.SampleAssistantDemo2.SqlServerSchemaAssistant;
@@ -36,6 +37,8 @@ public class SqlServerSharedState
     {
         CurrentDatabase = database;
     }
+
+    public Dictionary<string, DataSet> QueryResults { get; set; } = new();
 }
 
 public class SqlServerSchemaAssistantState
